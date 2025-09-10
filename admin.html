@@ -272,6 +272,12 @@
     </div>
   </div>
 
+<div class="section" id="upgradeSection">
+  <h4>Upgrade Account</h4>
+  <button class="approve" id="upgradeTier2Btn">Upgrade to Tier 2</button>
+  <button class="approve" id="upgradeTier3Btn">Upgrade to Tier 3</button>
+  <p id="upgradeStatus" style="margin-top:8px;color:green;font-weight:bold;"></p>
+</div>
   <!-- Slip Viewer Modal -->
   <div class="modal" id="slipModal">
     <div class="modal-content" style="max-width:95%;max-height:90vh;overflow:hidden;">
@@ -467,10 +473,7 @@ addFundsBtn.onclick = () => {
     const rate = exchangeRates[currency] || 1;  
     const amtInUSD = amt / rate; // convert into USD base
     selectedUserData.balance += amtInUSD;
-    selectedUserData.history.unshift({
-      action: `Admin added ${amt} ${currency} (≈ ${amtInUSD.toFixed(2)} USD)`,
-      date: new Date().toISOString()
-    });
+    
     saveUserData(); openManageModal(modalUsername.textContent);
   }
 };
@@ -483,10 +486,7 @@ removeFundsBtn.onclick = () => {
     const amtInUSD = amt / rate;
     if (amtInUSD <= selectedUserData.balance) {
       selectedUserData.balance -= amtInUSD;
-      selectedUserData.history.unshift({
-        action: `Admin removed ${amt} ${currency} (≈ ${amtInUSD.toFixed(2)} USD)`,
-        date: new Date().toISOString()
-      });
+     
       saveUserData(); openManageModal(modalUsername.textContent);
     }
   }
@@ -628,6 +628,43 @@ const exchangeRates = {
       saveUserData(); alert("Instructions saved.");
     }
   };
+
+// ------------------- ADD THE ADMIN UPGRADE CODE HERE -------------------
+const upgradeTier2Btn = document.getElementById("upgradeTier2Btn");
+const upgradeTier3Btn = document.getElementById("upgradeTier3Btn");
+const upgradeStatus = document.getElementById("upgradeStatus");
+
+function formatUpgradeCost(amount) {
+  return `$${amount.toFixed(2)}`;
+}
+
+function upgradeAccount(userData, tier) {
+  let cost = tier === 2 ? 100 : 200;
+  if (userData.balance >= cost) {
+    userData.balance -= cost;
+    userData.tier = tier;
+    userData.history.unshift({
+      action: `Upgraded to Tier ${tier} (Cost: ${formatUpgradeCost(cost)})`,
+      date: new Date().toISOString()
+    });
+    saveUserData();
+    openManageModal(modalUsername.textContent);
+    upgradeStatus.textContent = `Successfully upgraded to Tier ${tier}.`;
+    upgradeStatus.style.color = "green";
+  } else {
+    upgradeStatus.textContent = `Insufficient balance for Tier ${tier}.`;
+    upgradeStatus.style.color = "red";
+  }
+}
+
+upgradeTier2Btn.onclick = () => {
+  upgradeAccount(selectedUserData, 2);
+};
+
+upgradeTier3Btn.onclick = () => {
+  upgradeAccount(selectedUserData, 3);
+};
+// -----------------------------------------------------------------------
 
   // Approve/Reject
   document.addEventListener("click", e => {
