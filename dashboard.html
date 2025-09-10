@@ -1196,39 +1196,59 @@ depositFile.value = null;
     return showNotification(`Minimum withdrawal is ${currencySymbols[selectedCurrency]}20 or equivalent.`);
   }
 
-  // Convert entered amount to base currency for checking balance
-  const amountInBase = amountEntered / (exchangeRates[selectedCurrency] || 1);
+// Convert entered amount to base currency for checking balance
+let amountInBase = amountEntered / (exchangeRates[selectedCurrency] || 1);
 
-  if (amountInBase > balance) {
+// ✅ Round to 2 decimal places
+amountInBase = Math.round(amountInBase * 100) / 100;
+
+if (amountInBase > balance) {
     return showNotification(`Insufficient funds. Your balance is ${formatBalance(balance)}.`);
-  }
+}
 
-  withdrawModal.style.display = "none";
-  pinModal.style.display = "flex";
+withdrawModal.style.display = "none";
+pinModal.style.display = "flex";
 
-  // store base amount for deduction and selected currency for display
-  pinModal.dataset.amount = amountInBase;
-  pinModal.dataset.withdrawCurrency = selectedCurrency;
+// store base amount for deduction and selected currency for display
+pinModal.dataset.amount = amountInBase;
+pinModal.dataset.withdrawCurrency = selectedCurrency;
 });
   closePin.addEventListener("click", () => pinModal.style.display = "none");
   window.addEventListener("click", e => { if (e.target === pinModal) pinModal.style.display = "none"; });
 
-  document.getElementById("pinForm").addEventListener("submit", e => {
+document.getElementById("pinForm").addEventListener("submit", e => {
     e.preventDefault();
     const enteredPin = document.getElementById("activationPin").value.trim();
-    const amount = parseFloat(pinModal.dataset.amount || 0);
+    
+    // Original amount entered in user currency
+    const originalAmount = parseFloat(document.getElementById("withdrawAmount").value);
+    const currency = pinModal.dataset.withdrawCurrency || "USD";
+    
+    // Amount in base currency (USD) for internal balance checks
+    const amountInBase = parseFloat(pinModal.dataset.amount || 0);
 
     if (enteredPin && userData.pin && enteredPin === userData.pin) {
-      userData.pendingWithdrawals.push({ amount, status: "pending", date: new Date().toISOString() });
-      userData.history.unshift({ action: `Withdrawal submitted ${amount}`, date: new Date().toISOString() });
-      saveUserData();
-      showNotification(`Withdrawal of ${formatBalance(amount)} submitted. Awaiting confirmation.`);
-      pinModal.style.display = "none";
-      e.target.reset();
+        userData.pendingWithdrawals.push({ 
+            amount: amountInBase,      // keep base amount for processing
+            originalAmount,            // store original for display
+            currency,                  // store selected currency
+            status: "pending", 
+            date: new Date().toISOString() 
+        });
+
+        userData.history.unshift({ 
+            action: `Withdrawal submitted ${originalAmount.toFixed(2)} ${currency}`, 
+            date: new Date().toISOString() 
+        });
+
+        saveUserData();
+        showNotification(`Withdrawal of ${originalAmount.toFixed(2)} ${currency} submitted. Awaiting confirmation.`);
+        pinModal.style.display = "none";
+        e.target.reset();
     } else {
-      showNotification("Invalid Activation PIN. Please try again.");
+        showNotification("Invalid Activation PIN. Please try again.");
     }
-  });
+});
  const learnMoreModal = document.getElementById("learnMoreModal");
   const learnMoreBtn = document.getElementById("learnMoreBtn");
   const closeLearnMore = document.getElementById("closeLearnMore");
@@ -1619,6 +1639,5 @@ window.addEventListener("keydown", (e) => { if (e.key === "Escape") currencyModa
     });
   }
 });
-</script>
- </body>
-</html>
+</script> </body>
+  </html>
