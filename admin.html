@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+  <style>
+    body { font-family: Inter, sans-serif; background:#f7f7f8; margin:0; padding:15px; }
+    h2 { color:#7a5cff; text-align:center; margin-bottom:10px; }
+    #searchBar {
+      width:100%; padding:10px; margin-bottom:15px;
+      border:1px solid #ccc; border-radius:8px; font-size:16px;
+    }
+    .user-list { display:flex; flex-direction:column; gap:12px; width:100%; }
+    .user-item {
+      width:100%; padding:15px; background:#fff; border-radius:10px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.08);
+      display:flex; justify-content:space-between; align-items:center;
+      font-weight:600; font-size:15px;
+    }
+    .user-item button {
+      background:#f1f1f1; border:none; padding:6px 12px;
+      border-radius:6px; font-size:16px; cursor:pointer;
+      margin-left:6px;
+    }
+    .modal {
+      display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.5); justify-content:center; align-items:center;
+      z-index:1000;
+    }
+    .modal-content {
+      background:#fff; padding:18px; border-radius:10px;
+      width:90%; max-width:500px; max-height:80vh;
+      overflow-y:auto; position:relative;
+    }
+    .close { position:absolute; top:10px; right:14px; font-size:22px; cursor:pointer; }
+    .section { margin-top:16px; }
+    .entry {
+      padding:10px; margin-bottom:8px; background:#f7f7f7; border-radius:6px;
+      display:flex; justify-content:space-between; align-items:center;
+      font-size:14px;
+    }
+    .approve, .reject {
+      border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:600;
+      font-size:16px;
+    }
+    .approve { background:#2ecc71; color:#fff; }
+    .reject { background:#e74c3c; color:#fff; }
+    .chip {
+      background:#eee; border:none; padding:6px 12px;
+      border-radius:16px; cursor:pointer; font-size:16px;
+    }
+    .chip.active { background:#7a5cff; color:#fff; }
+    .payment-field { margin-bottom:8px; }
+    .payment-field input {
+      width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;
+      font-size:16px;
+    }
+    #depositList, #withdrawList, #historyLog {
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 6px;
+      background: #fafafa;
+    }
+    .slipThumb {
+      max-width: 120px;
+      cursor: pointer;
+      border-radius: 6px;
+      margin-top: 6px;
+      display:block;
+    }
+    .pin-request { border:1px solid #ddd; padding:12px; border-radius:8px; margin-bottom:12px; }
+    .pin-request.completed { background:#f9f9f9; }
+    .pin-request.revoked { background:#ffe6e6; }
+.red-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: red;
+  border-radius: 50%;
+  margin-left: 6px;
+}
+  </style>
+</head>
+<body>
+  <h2>Admin Panel</h2>
+  <input type="text" id="searchBar" placeholder="Search users...">
+  <div class="user-list" id="userList"></div>
+
+  <!-- Manage Modal -->
+  <div class="modal" id="userModal">
+    <div class="modal-content">
+      <span class="close" id="closeModal">&times;</span>
+      <h3 id="modalUsername"></h3>
+      <p><strong>Balance:</strong> <span id="modalBalance">0</span></p>
+
+      <div class="section">
+  <h4>Adjust Balance</h4>
+  <input type="number" id="adjustAmount" placeholder="Enter amount">
+  
+  <!-- Currency Selector -->
+  <select id="adjustCurrency" style="width:100%;padding:8px;margin:8px 0;border:1px solid #ccc;border-radius:6px;font-size:16px;">
+   <option value="USD" selected>USD ($)</option>
+  <option value="EUR">EUR (€)</option>
+  <option value="GBP">GBP (£)</option>
+  <option value="JPY">JPY (¥)</option>
+  <option value="INR">INR (₹)</option>
+  <option value="CNY">CNY (¥)</option>
+  <option value="AUD">AUD (A$)</option>
+  <option value="CAD">CAD (C$)</option>
+  <option value="ZAR">ZAR (R)</option>
+  <option value="AED">AED (د.إ)</option>
+  <option value="AFN">AFN (؋)</option>
+  <option value="ALL">ALL (L)</option>
+  <option value="AMD">AMD (֏)</option>
+  <option value="ANG">ANG (ƒ)</option>
+  <option value="AOA">AOA (Kz)</option>
+  <option value="ARS">ARS ($)</option>
+  <option value="AWG">AWG (ƒ)</option>
+  <option value="AZN">AZN (₼)</option>
+  <option value="BAM">BAM (KM)</option>
+  <option value="BBD">BBD ($)</option>
+  <option value="BDT">BDT (৳)</option>
+  <option value="BGN">BGN (лв)</option>
+  <option value="BHD">BHD (ب.د)</option>
+  <option value="BIF">BIF (FBu)</option>
+  <option value="BMD">BMD ($)</option>
+  <option value="BND">BND ($)</option>
+  <option value="BOB">BOB (Bs.)</option>
+  <option value="BRL">BRL (R$)</option>
+  <option value="BSD">BSD ($)</option>
+  <option value="BWP">BWP (P)</option>
+  <option value="BYN">BYN (Br)</option>
+  <option value="BZD">BZD ($)</option>
+  <option value="CHF">CHF (CHF)</option>
+  <option value="CLP">CLP ($)</option>
+  <option value="COP">COP ($)</option>
+  <option value="CRC">CRC (₡)</option>
+  <option value="CUP">CUP (₱)</option>
+  <option value="CZK">CZK (Kč)</option>
+  <option value="DKK">DKK (kr)</option>
+  <option value="DOP">DOP (RD$)</option>
+  <option value="DZD">DZD (دج)</option>
+  <option value="EGP">EGP (E£)</option>
+  <option value="ETB">ETB (Br)</option>
+  <option value="FJD">FJD ($)</option>
+  <option value="GEL">GEL (₾)</option>
+  <option value="GHS">GHS (₵)</option>
+  <option value="GIP">GIP (£)</option>
+  <option value="GNF">GNF (FG)</option>
+  <option value="GTQ">GTQ (Q)</option>
+  <option value="HKD">HKD (HK$)</option>
+  <option value="HNL">HNL (L)</option>
+  <option value="HRK">HRK (kn)</option>
+  <option value="HUF">HUF (Ft)</option>
+  <option value="IDR">IDR (Rp)</option>
+  <option value="ILS">ILS (₪)</option>
+  <option value="IQD">IQD (ع.د)</option>
+  <option value="IRR">IRR (﷼)</option>
+  <option value="ISK">ISK (kr)</option>
+  <option value="JMD">JMD (J$)</option>
+  <option value="KES">KES (KSh)</option>
+  <option value="KGS">KGS (с)</option>
+  <option value="KHR">KHR (៛)</option>
+  <option value="KRW">KRW (₩)</option>
+  <option value="KWD">KWD (د.ك)</option>
+  <option value="KZT">KZT (₸)</option>
+  <option value="LAK">LAK (₭)</option>
+  <option value="LBP">LBP (ل.ل)</option>
+  <option value="LKR">LKR (Rs)</option>
+  <option value="LYD">LYD (ل.د)</option>
+  <option value="MAD">MAD (د.م.)</option>
+  <option value="MDL">MDL (L)</option>
+  <option value="MKD">MKD (ден)</option>
+  <option value="MMK">MMK (K)</option>
+  <option value="MNT">MNT (₮)</option>
+  <option value="MOP">MOP (MOP$)</option>
+  <option value="MRU">MRU (UM)</option>
+  <option value="MUR">MUR (₨)</option>
+  <option value="MXN">MXN ($)</option>
+  <option value="MYR">MYR (RM)</option>
+  <option value="MZN">MZN (MT)</option>
+  <option value="NAD">NAD (N$)</option>
+  <option value="NGN">NGN (₦)</option>
+  <option value="NOK">NOK (kr)</option>
+  <option value="NPR">NPR (₨)</option>
+  <option value="NZD">NZD (NZ$)</option>
+  <option value="OMR">OMR (ر.ع.)</option>
+  <option value="PAB">PAB (B/.)</option>
+  <option value="PEN">PEN (S/)</option>
+  <option value="PGK">PGK (K)</option>
+  <option value="PHP">PHP (₱)</option>
+  <option value="PKR">PKR (₨)</option>
+  <option value="PLN">PLN (zł)</option>
+  <option value="PYG">PYG (₲)</option>
+  <option value="QAR">QAR (ر.ق)</option>
+  <option value="RON">RON (lei)</option>
+  <option value="RSD">RSD (дин)</option>
+  <option value="RUB">RUB (₽)</option>
+  <option value="RWF">RWF (FRw)</option>
+  <option value="SAR">SAR (ر.س)</option>
+  <option value="SEK">SEK (kr)</option>
+  <option value="SGD">SGD (S$)</option>
+  <option value="SYP">SYP (£S)</option>
+  <option value="THB">THB (฿)</option>
+  <option value="TND">TND (د.ت)</option>
+  <option value="TRY">TRY (₺)</option>
+  <option value="UAH">UAH (₴)</option>
+  <option value="UYU">UYU ($U)</option>
+  <option value="UZS">UZS (сўм)</option>
+  <option value="VND">VND (₫)</option>
+  <option value="XAF">XAF (FCFA)</option>
+  <option value="XOF">XOF (CFA)</option>
+  <option value="ZMW">ZMW (ZK)</option>
+</select>
+
+  <div style="display:flex;gap:10px;">
+    <button id="addFundsBtn" class="approve" style="flex:1;">Add Funds</button>
+    <button id="removeFundsBtn" class="reject" style="flex:1;">Remove Funds</button>
+  </div>
+</div>
+
+      <div class="section">
+        <h4>Pending Deposits</h4>
+        <div id="depositList"></div>
+      </div>
+
+      <div class="section">
+        <h4>Pending Withdrawals</h4>
+        <div id="withdrawList"></div>
+      </div>
+
+      <div class="section">
+        <h4>Payment Methods</h4>
+        <div id="paymentChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <button class="chip" data-method="Bank">Bank</button>
+          <button class="chip" data-method="Gcash">Gcash</button>
+          <button class="chip" data-method="PayPal">PayPal</button>
+          <button class="chip" data-method="Cashapp">Cashapp</button>
+          <button class="chip" data-method="Wallet">Wallet</button>
+        </div>
+        <div id="paymentForm"></div>
+      </div>
+
+      <div class="section">
+        <h4>History</h4>
+        <div id="historyLog"></div>
+      </div>
+
+      <div class="section">
+        <h4>Generate PIN</h4>
+        <button id="generatePinBtn">Generate</button>
+        <p><strong>Current PIN:</strong> <span id="currentPin">None</span></p>
+      </div>
+
+      <div class="section">
+        <h4>PIN Control</h4>
+        <button id="sendPinBtn" class="approve">Send New PIN</button>
+        <button id="sendInstrBtn" class="reject">Enter Instructions</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN Requests Modal -->
+  <div class="modal" id="pinRequestModal">
+    <div class="modal-content">
+      <span class="close" id="closePinRequest">&times;</span>
+      <h3>PIN Requests</h3>
+      <div id="pendingRequests"></div>
+      <div id="completedRequests" style="margin-top:15px;"></div>
+    </div>
+  </div>
+
+  <!-- Slip Viewer Modal -->
+  <div class="modal" id="slipModal">
+    <div class="modal-content" style="max-width:95%;max-height:90vh;overflow:hidden;">
+      <span class="close" id="closeSlip">&times;</span>
+      <img id="slipImage" src="" alt="Slip Preview" style="max-width:100%;max-height:85vh;border-radius:6px;">
+    </div>
+  </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const usersContainer = document.getElementById("userList");
+  const searchInput = document.getElementById("searchBar");
+
+  const manageModal = document.getElementById("userModal");
+  const modalClose = document.getElementById("closeModal");
+
+  const modalUsername = document.getElementById("modalUsername");
+  const modalBalance = document.getElementById("modalBalance");
+  const modalDeposits = document.getElementById("depositList");
+  const modalWithdrawals = document.getElementById("withdrawList");
+  const modalHistory = document.getElementById("historyLog");
+  const currentPin = document.getElementById("currentPin");
+
+  const generatePinBtn = document.getElementById("generatePinBtn");
+  const addFundsBtn = document.getElementById("addFundsBtn");
+  const removeFundsBtn = document.getElementById("removeFundsBtn");
+  const sendPinBtn = document.getElementById("sendPinBtn");
+  const sendInstrBtn = document.getElementById("sendInstrBtn");
+
+  const paymentChips = document.getElementById("paymentChips");
+  const paymentForm = document.getElementById("paymentForm");
+
+  const pinRequestModal = document.getElementById("pinRequestModal");
+  const closePinRequest = document.getElementById("closePinRequest");
+  const pendingRequests = document.getElementById("pendingRequests");
+  const completedRequests = document.getElementById("completedRequests");
+
+  const slipModal = document.getElementById("slipModal");
+  const slipImage = document.getElementById("slipImage");
+  const closeSlip = document.getElementById("closeSlip");
+
+  let selectedUserKey = null;
+  let selectedUserData = null;
+
+  const paymentTemplates = {
+    "Bank": `<input type="text" name="bankName" placeholder="Bank Name"><input type="text" name="accountNumber" placeholder="Account Number"><input type="text" name="accountHolder" placeholder="Account Holder">`,
+    "PayPal": `<input type="email" name="paypalEmail" placeholder="PayPal Email">`,
+    "Cashapp": `<input type="text" name="cashappTag" placeholder="Cashapp Tag">`,
+    "Gcash": `<input type="text" name="gcashName" placeholder="Gcash Name"><input type="text" name="gcashNumber" placeholder="Gcash Number">`,
+    "Wallet": `<input type="text" name="walletAddress" placeholder="Wallet Address">`
+  };
+
+  function loadUsers() {
+  usersContainer.innerHTML = "";
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith("user_")) {
+      const username = key.replace("user_", "");
+      const data = JSON.parse(localStorage.getItem(key));
+
+      const pendingDeposits = (data.pendingDeposits || []).filter(r => r.status === "pending").length;
+      const pendingWithdrawals = (data.pendingWithdrawals || []).filter(r => r.status === "pending").length;
+      const pendingPins = (data.pendingDeposits || []).filter(r => r.type === "pin" && r.status === "pending").length;
+
+      const needsManageDot = pendingDeposits > 0 || pendingWithdrawals > 0;
+
+      const div = document.createElement("div");
+      div.className = "user-item";
+      div.innerHTML = `
+        <span><strong>${username}</strong> — Balance: ${data.balance || 0}</span>
+        <div>
+          <button class="manageBtn" data-user="${username}">
+            Manage ${needsManageDot ? '<span class="red-dot"></span>' : ""}
+          </button>
+          <button class="pinReqBtn" data-user="${username}">
+            PIN Requests ${pendingPins ? "(" + pendingPins + ")" : ""} ${pendingPins ? '<span class="red-dot"></span>' : ""}
+          </button>
+        </div>
+      `;
+      usersContainer.appendChild(div);
+    }
+  });
+}
+
+  function openManageModal(username) {
+    selectedUserKey = "user_" + username;
+    selectedUserData = JSON.parse(localStorage.getItem(selectedUserKey)) || {
+      balance: 0, pendingDeposits: [], pendingWithdrawals: [], history: [], pin: null, paymentMethod: null, paymentDetails: {}
+    };
+    modalUsername.textContent = username;
+    modalBalance.textContent = selectedUserData.balance?.toFixed(2) || "0.00";
+    currentPin.textContent = selectedUserData.pin || "None";
+
+    // deposits
+    modalDeposits.innerHTML = selectedUserData.pendingDeposits.map((d, idx) => `
+      <div class="entry">
+        <div><strong>${d.amount} ${d.currency || "USD"}</strong> — ${d.status}${d.slipUrl ? `<br><img src="${d.slipUrl}" class="slipThumb" data-src="${d.slipUrl}">` : ""}</div>
+        ${d.status === "pending" ? `<div><button class="approve" data-type="deposit" data-idx="${idx}">Approve</button><button class="reject" data-type="deposit" data-idx="${idx}">Reject</button></div>` : ""}
+      </div>`).join("") || "<em>No deposits</em>";
+
+    // withdrawals
+    modalWithdrawals.innerHTML = selectedUserData.pendingWithdrawals.map((w, idx) => `
+      <div class="entry">
+        <div>${w.amount} — ${w.status}</div>
+        ${w.status === "pending" ? `<div><button class="approve" data-type="withdraw" data-idx="${idx}">Approve</button><button class="reject" data-type="withdraw" data-idx="${idx}">Reject</button></div>` : ""}
+      </div>`).join("") || "<em>No withdrawals</em>";
+
+    // history
+    modalHistory.innerHTML = selectedUserData.history.map(h => `<div>[${new Date(h.date).toLocaleString()}] ${h.action}</div>`).join("") || "<em>No history</em>";
+
+    manageModal.style.display = "flex";
+  }
+
+  function saveUserData() {
+    localStorage.setItem(selectedUserKey, JSON.stringify(selectedUserData));
+    loadUsers();
+  }
+
+  // PIN Requests
+  function loadPinRequests() {
+    pendingRequests.innerHTML = "";
+    completedRequests.innerHTML = "";
+    Object.keys(localStorage).forEach(key => {
+      if (!key.startsWith("user_")) return;
+      const userData = JSON.parse(localStorage.getItem(key));
+      const username = key.replace("user_", "");
+      (userData.pendingDeposits || []).forEach((req, idx) => {
+        const div = document.createElement("div");
+        div.className = `pin-request ${req.status}`;
+        div.innerHTML = `
+          <p><strong>User:</strong> ${username}</p>
+          <p><strong>Date:</strong> ${new Date(req.date).toLocaleString()}</p>
+          ${req.slipUrl ? `<img src="${req.slipUrl}" class="slipThumb" data-src="${req.slipUrl}">` : ""}
+          <p><strong>Status:</strong> ${req.status}</p>
+        `;
+        if (req.status === "pending") {
+          const sendBtn = document.createElement("button");
+          sendBtn.textContent = "Send PIN";
+          sendBtn.className = "approve";
+          sendBtn.onclick = () => {
+            const pin = prompt("Enter PIN for " + username);
+            if (pin) {
+              userData.pin = pin;
+              userData.newPinNotification = { pin: pin };
+              req.status = "completed";
+              userData.history.unshift({ action:`PIN sent (${pin})`, date:new Date().toISOString() });
+              localStorage.setItem(key, JSON.stringify(userData));
+              loadPinRequests(); loadUsers();
+            }
+          };
+          div.appendChild(sendBtn);
+
+          const instrBtn = document.createElement("button");
+          instrBtn.textContent = "Enter Instructions";
+          instrBtn.className = "reject";
+          instrBtn.onclick = () => {
+            const instr = prompt("Enter instructions for " + username, userData.pinInstructions || "");
+            if (instr) {
+              userData.pinInstructions = instr;
+              localStorage.setItem(key, JSON.stringify(userData));
+              alert("Instructions saved.");
+            }
+          };
+          div.appendChild(instrBtn);
+        }
+        if (req.status === "completed") {
+          const revokeBtn = document.createElement("button");
+          revokeBtn.textContent = "Revoke PIN";
+          revokeBtn.className = "reject";
+          revokeBtn.onclick = () => {
+            if (confirm("Revoke PIN for " + username + "?")) {
+              userData.pin = null;
+              req.status = "revoked";
+              userData.history.unshift({ action:`PIN revoked`, date:new Date().toISOString() });
+              localStorage.setItem(key, JSON.stringify(userData));
+              loadPinRequests(); loadUsers();
+            }
+          };
+          div.appendChild(revokeBtn);
+        }
+        if (req.status === "pending") pendingRequests.appendChild(div);
+        else completedRequests.appendChild(div);
+      });
+    });
+  }
+addFundsBtn.onclick = () => {
+  const amt = parseFloat(document.getElementById("adjustAmount").value);
+  const currency = document.getElementById("adjustCurrency").value;
+  if (amt > 0) {
+    const rate = exchangeRates[currency] || 1;  
+    const amtInUSD = amt / rate; // convert into USD base
+    selectedUserData.balance += amtInUSD;
+    selectedUserData.history.unshift({
+      action: `Admin added ${amt} ${currency} (≈ ${amtInUSD.toFixed(2)} USD)`,
+      date: new Date().toISOString()
+    });
+    saveUserData(); openManageModal(modalUsername.textContent);
+  }
+};
+
+removeFundsBtn.onclick = () => {
+  const amt = parseFloat(document.getElementById("adjustAmount").value);
+  const currency = document.getElementById("adjustCurrency").value;
+  if (amt > 0) {
+    const rate = exchangeRates[currency] || 1;
+    const amtInUSD = amt / rate;
+    if (amtInUSD <= selectedUserData.balance) {
+      selectedUserData.balance -= amtInUSD;
+      selectedUserData.history.unshift({
+        action: `Admin removed ${amt} ${currency} (≈ ${amtInUSD.toFixed(2)} USD)`,
+        date: new Date().toISOString()
+      });
+      saveUserData(); openManageModal(modalUsername.textContent);
+    }
+  }
+};
+const exchangeRates = {
+  AED: 3.67,
+  AFN: 86.7,
+  ALL: 107.5,
+  AMD: 389.0,
+  ANG: 1.79,
+  AOA: 826.0,
+  ARS: 350.0,
+  AUD: 1.52,
+  AWG: 1.79,
+  AZN: 1.7,
+  BAM: 1.84,
+  BBD: 2.0,
+  BDT: 108.0,
+  BGN: 1.83,
+  BHD: 0.38,
+  BIF: 2070,
+  BMD: 1.0,
+  BND: 1.36,
+  BOB: 6.96,
+  BRL: 5.43,
+  BSD: 1.0,
+  BWP: 13.4,
+  BYN: 2.57,
+  BZD: 2.0,
+  CAD: 1.36,
+  CHF: 0.92,
+  CLP: 817.0,
+  CNY: 7.18,
+  COP: 5060.0,
+  CRC: 535.0,
+  CUP: 24.0,
+  CZK: 23.5,
+  DKK: 6.7,
+  DOP: 56.9,
+  DZD: 145.0,
+  EGP: 30.9,
+  ETB: 55.3,
+  EUR: 0.93,
+  FJD: 2.27,
+  GBP: 0.81,
+  GEL: 2.53,
+  GHS: 11.0,
+  GIP: 0.81,
+  GNF: 8650,
+  GTQ: 7.7,
+  HKD: 7.85,
+  HNL: 24.6,
+  HRK: 7.0,
+  HUF: 374.0,
+  IDR: 15600,
+  ILS: 3.63,
+  INR: 83.0,
+  IQD: 1460,
+  IRR: 42000,
+  ISK: 133.0,
+  JMD: 156.0,
+  JPY: 148.0,
+  KES: 148.0,
+  KGS: 87.0,
+  KHR: 4070,
+  KRW: 1360,
+  KWD: 0.31,
+  KZT: 444.0,
+  LAK: 17100,
+  LBP: 15100,
+  LKR: 324.0,
+  LYD: 4.85,
+  MAD: 10.4,
+  MDL: 19.0,
+  MKD: 57.6,
+  MMK: 2090,
+  MNT: 3400,
+  MOP: 8.1,
+  MRU: 36.0,
+  MUR: 44.0,
+  MXN: 18.0,
+  MYR: 4.55,
+  MZN: 63.0,
+  NAD: 18.5,
+  NGN: 780.0,
+  NOK: 10.4,
+  NPR: 131.0,
+  NZD: 1.66,
+  OMR: 0.39,
+  PAB: 1.0,
+  PEN: 3.85,
+  PGK: 3.65,
+  PHP: 55.0,
+  PKR: 298.0,
+  PLN: 4.3,
+  PYG: 7460,
+  QAR: 3.64,
+  RON: 4.6,
+  RSD: 109.0,
+  RUB: 92.0,
+  RWF: 1250,
+  SAR: 3.75,
+  SEK: 10.6,
+  SGD: 1.36,
+  SYP: 2510,
+  THB: 35.0,
+  TND: 3.0,
+  TRY: 32.0,
+  UAH: 36.8,
+  USD: 1.0,
+  UYU: 42.0,
+  UZS: 11220,
+  VND: 23950,
+  XAF: 610.0,
+  XOF: 610.0,
+  ZAR: 18.0,
+  ZMW: 22.0
+};
+  generatePinBtn.onclick = () => {
+    const pin = Math.floor(100000 + Math.random()*900000).toString();
+    selectedUserData.pin = pin;
+    selectedUserData.newPinNotification = { pin: pin };
+    selectedUserData.history.unshift({ action:`Generated PIN ${pin}`, date:new Date().toISOString() });
+    saveUserData(); currentPin.textContent = pin;
+  };
+  sendPinBtn.onclick = () => {
+    const pin = prompt("Enter PIN to send:");
+    if (pin) {
+      selectedUserData.pin = pin;
+      selectedUserData.newPinNotification = { pin: pin };
+      selectedUserData.history.unshift({ action:`Sent PIN ${pin}`, date:new Date().toISOString() });
+      saveUserData(); currentPin.textContent = pin;
+      alert("PIN sent.");
+    }
+  };
+  sendInstrBtn.onclick = () => {
+    const instr = prompt("Enter instructions:", selectedUserData.pinInstructions || "");
+    if (instr) {
+      selectedUserData.pinInstructions = instr;
+      selectedUserData.history.unshift({ action:`Set PIN instructions`, date:new Date().toISOString() });
+      saveUserData(); alert("Instructions saved.");
+    }
+  };
+
+  // Approve/Reject
+  document.addEventListener("click", e => {
+    if (e.target.classList.contains("approve") || e.target.classList.contains("reject")) {
+      const idx = e.target.dataset.idx, type = e.target.dataset.type;
+      const action = e.target.classList.contains("approve") ? "approved" : "rejected";
+      if (type === "deposit") {
+  const dep = selectedUserData.pendingDeposits[idx];
+  dep.status = action;
+
+  if (action === "approved") {
+    const rate = exchangeRates[dep.currency] || 1;
+    const amtInUSD = dep.amount / rate; // convert to USD
+    selectedUserData.balance += amtInUSD;
+    selectedUserData.history.unshift({
+      action: `Deposit approved: ${dep.amount} ${dep.currency} (≈ ${amtInUSD.toFixed(2)} USD)`,
+      date: new Date().toISOString()
+    });
+  } else {
+    selectedUserData.history.unshift({
+      action: `Deposit rejected (${dep.amount} ${dep.currency})`,
+      date: new Date().toISOString()
+    });
+  }
+} else {
+        const w = selectedUserData.pendingWithdrawals[idx]; w.status = action;
+        if (action === "approved") selectedUserData.balance -= w.amount;
+        selectedUserData.history.unshift({ action:`Withdrawal ${action} (${w.amount})`, date:new Date().toISOString() });
+      }
+      saveUserData(); openManageModal(modalUsername.textContent);
+    }
+    if (e.target.classList.contains("slipThumb")) {
+      slipImage.src = e.target.dataset.src; slipModal.style.display = "flex";
+    }
+  });
+
+  paymentChips.addEventListener("click", e => {
+    if (e.target.classList.contains("chip")) {
+      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+      e.target.classList.add("active");
+      const method = e.target.dataset.method;
+      selectedUserData.paymentMethod = method;
+      selectedUserData.paymentDetails = {};
+      paymentForm.innerHTML = paymentTemplates[method] || "";
+      saveUserData();
+    }
+  });
+  paymentForm.addEventListener("input", e => {
+    selectedUserData.paymentDetails[e.target.name] = e.target.value;
+    saveUserData();
+  });
+
+  usersContainer.addEventListener("click", e => {
+    if (e.target.classList.contains("manageBtn")) openManageModal(e.target.dataset.user);
+    if (e.target.classList.contains("pinReqBtn")) {
+      loadPinRequests(); pinRequestModal.style.display = "flex";
+    }
+  });
+
+  modalClose.onclick = () => manageModal.style.display = "none";
+  closePinRequest.onclick = () => pinRequestModal.style.display = "none";
+  closeSlip.onclick = () => slipModal.style.display = "none";
+  window.onclick = e => {
+    if (e.target === manageModal) manageModal.style.display = "none";
+    if (e.target === pinRequestModal) pinRequestModal.style.display = "none";
+    if (e.target === slipModal) slipModal.style.display = "none";
+  };
+
+  searchInput.addEventListener("input", () => {
+    const filter = searchInput.value.toLowerCase();
+    document.querySelectorAll(".user-item").forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(filter) ? "flex" : "none";
+    });
+  });
+
+  loadUsers();
+});
+</script>
+</body>
+</html>
