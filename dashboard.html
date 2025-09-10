@@ -885,7 +885,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- Redirect if not logged in ---
   const currentUser = localStorage.getItem("currentUser");
   if (!currentUser) {
-    window.location.href = "login.html";
+    window.location.href = "index.html";
     return;
   }
 
@@ -1594,7 +1594,7 @@ window.addEventListener("keydown", (e) => { if (e.key === "Escape") currencyModa
   logoutBtn.addEventListener("click", () => {
     localStorage.removeItem("currentUser");
     showNotification("Logged out successfully");
-    setTimeout(() => { window.location.href = "login.html"; }, 1500);
+    setTimeout(() => { window.location.href = "index.html";  }, 1500);
   });
 
   // --- 🔔 Check for new PIN notification ---
@@ -1622,4 +1622,3 @@ window.addEventListener("keydown", (e) => { if (e.key === "Escape") currencyModa
 </script>
  </body>
 </html>
-
