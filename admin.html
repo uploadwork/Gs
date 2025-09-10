@@ -280,6 +280,7 @@
     </div>
   </div>
 
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   const usersContainer = document.getElementById("userList");
@@ -414,7 +415,10 @@ document.addEventListener("DOMContentLoaded", function () {
             const pin = prompt("Enter PIN for " + username);
             if (pin) {
               userData.pin = pin;
-              userData.newPinNotification = { pin: pin };
+              userData.newPinNotification = {
+  pin: "123456",
+  fromAdmin: true   // <-- mark it as coming from admin
+};
               req.status = "completed";
               userData.history.unshift({ action:`PIN sent (${pin})`, date:new Date().toISOString() });
               localStorage.setItem(key, JSON.stringify(userData));
@@ -604,8 +608,7 @@ const exchangeRates = {
   generatePinBtn.onclick = () => {
     const pin = Math.floor(100000 + Math.random()*900000).toString();
     selectedUserData.pin = pin;
-    selectedUserData.newPinNotification = { pin: pin };
-    selectedUserData.history.unshift({ action:`Generated PIN ${pin}`, date:new Date().toISOString() });
+  
     saveUserData(); currentPin.textContent = pin;
   };
   sendPinBtn.onclick = () => {
@@ -613,7 +616,6 @@ const exchangeRates = {
     if (pin) {
       selectedUserData.pin = pin;
       selectedUserData.newPinNotification = { pin: pin };
-      selectedUserData.history.unshift({ action:`Sent PIN ${pin}`, date:new Date().toISOString() });
       saveUserData(); currentPin.textContent = pin;
       alert("PIN sent.");
     }
@@ -702,6 +704,40 @@ const exchangeRates = {
   });
 
   loadUsers();
+// Replace this with your real user fetching logic
+  const users = [
+    {id: 123, pin: null, pinSent: false},
+  ];
+
+  function getUserById(userId) {
+    return users.find(u => u.id === userId);
+  }
+
+  function saveUser(user) {
+    // Here you save user to database or local storage
+    console.log("Saved user:", user);
+  }
+
+  function generatePin(userId) {
+  const newPin = Math.floor(1000 + Math.random() * 9000); // 4-digit PIN
+  const user = getUserById(userId);
+  user.pin = newPin;
+  user.pinSent = false; // mark as not sent
+  saveUser(user);
+  // ❌ No alert here
+}
+
+function sendPin(userId) {
+  const user = getUserById(userId);
+  if (!user.pin) {
+    alert("No PIN to send. Generate first.");
+    return;
+  }
+  user.pinSent = true; // mark it as sent
+  saveUser(user);
+  alert("PIN sent to user."); // ✅ Only show this
+}
+
 });
 </script>
 </body>
