@@ -905,6 +905,16 @@
     </p>
   </div>
 </div>
+<!-- Transaction History Modal -->
+<div id="historyModal" class="modal">
+  <div class="modal-content" style="max-width:400px; text-align:left;">
+    <span class="close" id="closeHistory" style="cursor:pointer;">&times;</span>
+    <h3>Transaction History</h3>
+    <div id="transactionHistory" style="max-height:300px; overflow-y:auto; margin-top:12px;">
+      <em>No transactions yet.</em>
+    </div>
+  </div>
+</div>
   
   <!-- Notification Modal -->
   <div id="notifyModal" class="modal">
@@ -1916,6 +1926,53 @@ window.addEventListener("keydown", (e) => { if (e.key === "Escape") currencyModa
   });
 }
   renderPaymentMethods();
+  // --- Transaction History Modal ---
+const historyBtn = document.querySelector(".actions .action:nth-child(4)"); // 4th button in grid
+const historyModal = document.getElementById("historyModal");
+const closeHistory = document.getElementById("closeHistory");
+
+if (historyBtn) {
+  historyBtn.addEventListener("click", () => {
+    renderTransactionHistory();
+    historyModal.style.display = "flex";
+  });
+}
+if (closeHistory) {
+  closeHistory.addEventListener("click", () => historyModal.style.display = "none");
+}
+window.addEventListener("click", e => {
+  if (e.target === historyModal) historyModal.style.display = "none";
+});
+function renderTransactionHistory() {
+  const container = document.getElementById("transactionHistory");
+  if (!container) return;
+
+  const history = userData.history || [];
+  const filteredHistory = history.filter(item => 
+    !/pin/i.test(item.action) // removes any action containing "pin" (case-insensitive)
+  );
+
+  if (filteredHistory.length === 0) {
+    container.innerHTML = "<em>No transactions yet.</em>";
+    return;
+  }
+
+  container.innerHTML = "";
+  history.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "history-item";
+    div.style.padding = "8px 0";
+    div.style.borderBottom = "1px solid #f3f3fb";
+
+    const date = new Date(item.date).toLocaleString();
+    div.innerHTML = `
+      <div><strong>${item.action}</strong></div>
+      <div style="font-size:13px; color:#555;">${date}</div>
+    `;
+
+    container.appendChild(div);
+  });
+}
 
   // --- Notification Modal ---
   function showNotification(message) {
@@ -1948,7 +2005,8 @@ window.addEventListener("keydown", (e) => { if (e.key === "Escape") currencyModa
   });
 
   // --- 🔔 Check for new PIN notification ---
-  if (userData.newPinNotification && userData.newPinNotification.pin) {
+  // Current:
+if (userData.newPinNotification && userData.newPinNotification.pin) {
     const pin = userData.newPinNotification.pin;
     const modal = document.createElement("div");
     modal.className = "modal";
