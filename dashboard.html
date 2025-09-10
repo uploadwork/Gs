@@ -1987,21 +1987,32 @@ document.querySelectorAll(".tier").forEach((el) => {
 `;
       } else if (selectedTier === 3) {
         modalBody.innerHTML = `
-          <h3>Upgrade to Tier 3</h3>
-          <ul>
-            <li>💎 Highest transaction limits</li>
-            <li>⚡ Priority withdrawals</li>
-            <li>🛡️ Premium security features</li>
-          </ul>
-          <<p style="color:green;font-weight:bold;">
-  Upgrade cost: ${formatUpgradeCost(100)}
-</p> <p style="color:green;font-weight:bold;">
-  Upgrade cost: ${formatUpgradeCost(200)}
-</p>
-
-          <img src="https://upload.wikimedia.org/wikipedia/commons/0/05/US_$100_series_2009_obverse.jpg"
-               alt="$100 Bill" style="max-width:180px;">
-        `;
+  <h3>Upgrade to Tier 3</h3>
+  <ul>
+    <li>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="#8A2BE2" style="vertical-align: middle; margin-right: 5px;">
+        <path d="M12 2l3 7h7l-5.5 4.5 2 7L12 16l-6.5 4-2-7L1 9h7l3-7z"/>
+      </svg>
+      Highest transaction limits
+    </li>
+    <li>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFA500" style="vertical-align: middle; margin-right: 5px;">
+        <path d="M3 12l18-12v24L3 12z"/>
+      </svg>
+      Priority withdrawals
+    </li>
+    <li>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="#008000" style="vertical-align: middle; margin-right: 5px;">
+        <path d="M12 1L3 5v6c0 5.5 3.8 10.74 9 12 5.2-1.26 9-6.5 9-12V5l-9-4z"/>
+      </svg>
+      Premium security features
+    </li>
+  </ul>
+  <p style="color:green;font-weight:bold;">
+  <p style="color:green;font-weight:bold;">
+    Upgrade cost: ${formatUpgradeCost(500)}
+  </p>
+`;
       }
 
       // Save selected tier so we know what to upgrade to
@@ -2039,7 +2050,7 @@ confirmTierUpgrade.addEventListener("click", () => {
     if (selectedTier === 2) {
   depositInput.value = (100 * (exchangeRates[getUserSetting("currency", "USD")] || 1)).toFixed(2);
 } else if (selectedTier === 3) {
-  depositInput.value = (200 * (exchangeRates[getUserSetting("currency", "USD")] || 1)).toFixed(2);
+  depositInput.value = (500 * (exchangeRates[getUserSetting("currency", "USD")] || 1)).toFixed(2);
 } else {
   depositInput.value = "";
 }
