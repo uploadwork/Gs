@@ -1449,7 +1449,10 @@ currency: userCurrency,
       slipUrl,
       type: "deposit"
     });
-    userData.history.unshift({ action: `Deposit submitted ${amount}`, date: new Date().toISOString() });
+    userData.history.unshift({ 
+  action: `Deposit submitted ${amount.toFixed(2)} ${userCurrency}`, 
+  date: new Date().toISOString() 
+});
     saveUserData();
 
     // After deposit submission
