@@ -335,6 +335,32 @@
     .file-chip .chipClear:hover {
       background: #c0392b;
     }
+/* ---- payment methods UI ---- */
+.payment-method {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fbfbff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #f0efff;
+  font-size: 14px;
+}
+.payment-method .meta { color: #444; font-size: 13px; opacity: 0.95; }
+.payment-method .controls { display:flex; gap:6px; align-items:center; }
+.copy-btn {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: none;
+  background: #7a5cff;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 13px;
+}
+.copy-btn.secondary { background: #eee; color: #333; font-weight:600; }
 
   </style>
 </head>
@@ -639,7 +665,41 @@
 
   </style>
 
-  
+ <!-- Manage Payment Methods Modal -->
+<div id="managePaymentModal" class="modal">
+  <div class="modal-content" style="max-width:340px;">
+    <span class="close" id="closeManagePayment" style="cursor:pointer;">&times;</span>
+    <h3>Manage Payment Methods</h3>
+
+    <form id="addPaymentForm" style="margin-top:8px;">
+  <select id="pmType" required style="margin-bottom:8px;">
+    <option value="">Select method</option>
+    <option value="GCash">GCash</option>
+    <option value="Bank">Bank Transfer</option>
+    <option value="CashApp">Cash App</option>
+    <option value="PayPal">PayPal</option>
+    <option value="Wallet">Wallet</option>
+    <option value="Other">Other</option>
+  </select>
+  <!-- Optional label (hidden if you don’t want user to edit name) -->
+  <input type="hidden" id="pmLabel">
+
+  <!-- Dynamic fields will appear here -->
+  <div id="pmDynamicFields"></div>
+
+  <div style="display:flex; gap:8px; margin-top:12px;">
+    <button type="submit" class="deposit-btn" style="flex:1;">Save</button>
+    <button type="button" id="cancelAddPayment" class="deposit-btn" style="flex:1; background:#ddd; color:#111;">Cancel</button>
+  </div>
+</form>
+
+    <div style="margin-top:14px;">
+      <h4 style="margin:6px 0;">Your Methods</h4>
+      <div id="myPaymentMethods"></div>
+    </div>
+  </div>
+</div>
+
  <!-- Deposit Modal -->
 <div id="depositModal" class="modal">
   <div class="modal-content">
@@ -718,6 +778,17 @@
     <h3>Withdraw Funds</h3>
     <form id="withdrawForm">
       <input type="number" id="withdrawAmount" placeholder="Enter amount" required min="20"><br><br>
+      <!-- Show selected method -->
+<div id="withdrawMethodDisplay"
+     style="margin:12px 0; padding:10px; background:#f9f9f9; border:1px solid #eee; border-radius:6px;">
+  <em>No payment method set.</em>
+</div>
+
+<!-- Edit button -->
+<button type="button" id="editPaymentBtn"
+        style="margin-bottom:10px; background:#ddd; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">
+  Edit Payment Method
+</button>
       <button type="submit" class="deposit-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -1107,7 +1178,215 @@ function formatBalance(amount) {
     renderPaymentMethods();
     depositModal.style.display = "flex";
   });
-  closeDeposit.addEventListener("click", () => depositModal.style.display = "none");
+  
+// ---------- Manage / Add Payment Methods (paste after renderPaymentMethods();) ----------
+(function wirePaymentManager(){
+  const addPaymentAction = document.querySelector(".actions .action:nth-child(3)");
+  const managePaymentModal = document.getElementById("managePaymentModal");
+  const closeManagePayment = document.getElementById("closeManagePayment");
+  const addPaymentForm = document.getElementById("addPaymentForm");
+  const pmType = document.getElementById("pmType");
+const pmDynamicFields = document.getElementById("pmDynamicFields");
+
+// generate fields depending on type
+function renderDynamicFields(selectedType, existingData={}) {
+  pmDynamicFields.innerHTML = ""; // clear old fields
+
+  function makeInput(id, placeholder, value="") {
+    const input = document.createElement("input");
+    input.id = id;
+    input.type = "text";
+    input.placeholder = placeholder;
+    input.value = value;
+    input.required = true;
+    input.style.marginBottom = "8px";
+    pmDynamicFields.appendChild(input);
+    return input;
+  }
+
+  if (selectedType === "GCash") {
+    makeInput("gcashName", "GCash Account Name", existingData.gcashName || "");
+    makeInput("gcashNumber", "GCash Number", existingData.gcashNumber || "");
+  } else if (selectedType === "Bank") {
+    makeInput("bankName", "Bank Name", existingData.bankName || "");
+    makeInput("accountName", "Account Name", existingData.accountName || "");
+    makeInput("accountNumber", "Account Number", existingData.accountNumber || "");
+  } else if (selectedType === "CashApp") {
+    makeInput("cashappTag", "Cash App Tag ($username)", existingData.cashappTag || "");
+  } else if (selectedType === "PayPal") {
+    makeInput("paypalUser", "PayPal Username / Email", existingData.paypalUser || "");
+  } else if (selectedType === "Wallet") {
+    makeInput("walletAddr", "Wallet Address", existingData.walletAddr || "");
+  } else if (selectedType === "Other") {
+    makeInput("otherDetails", "Enter details", existingData.otherDetails || "");
+  }
+}
+
+// refresh when type changes
+pmType.addEventListener("change", () => {
+  renderDynamicFields(pmType.value);
+});
+  const pmLabel = document.getElementById("pmLabel");
+
+  const myPaymentMethodsContainer = document.getElementById("myPaymentMethods");
+  const cancelAddPayment = document.getElementById("cancelAddPayment");
+
+  // ensure paymentMethods object exists
+  userData.paymentMethods = userData.paymentMethods || {};
+  saveUserData();
+
+  function renderMyPaymentMethods() {
+  myPaymentMethodsContainer.innerHTML = "";
+  const methods = userData.paymentMethods || {};
+  if (Object.keys(methods).length === 0) {
+    myPaymentMethodsContainer.innerHTML = "<em>No saved methods. Add one above.</em>";
+    return;
+  }
+
+  Object.entries(methods).forEach(([key, method]) => {
+    const div = document.createElement("div");
+    div.className = "payment-method";
+
+    // handle details (object or string)
+    let detailsText = "";
+    if (typeof method.details === "object") {
+      detailsText = Object.entries(method.details).map(([k, v]) => v).join(" | ");
+    } else {
+      detailsText = method.details || "";
+    }
+
+    const left = document.createElement("div");
+    left.style.minWidth = "0";
+    left.innerHTML = `<div style="font-weight:700;">${method.label || key}</div>
+                      <div class="meta">${method.type} · ${detailsText}</div>`;
+
+    const controls = document.createElement("div");
+    controls.className = "controls";
+
+    // --- Copy button ---
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "copy-btn";
+    copyBtn.textContent = "Copy";
+    copyBtn.addEventListener("click", () => {
+      const textToCopy = typeof method.details === "object"
+        ? Object.values(method.details).join(" | ")
+        : method.details;
+
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => (copyBtn.textContent = "Copy"), 1400);
+      }).catch(() => showNotification("Unable to copy to clipboard."));
+    });
+
+    // --- Edit button ---
+    const editBtn = document.createElement("button");
+    editBtn.className = "copy-btn secondary";
+    editBtn.textContent = "Edit";
+    editBtn.addEventListener("click", () => {
+      pmType.value = method.type;
+      pmLabel.value = method.label || "";
+      renderDynamicFields(method.type, method.details); // 👈 regenerate fields with values
+      addPaymentForm.dataset.editKey = key;
+    });
+
+    // --- Delete button ---
+    const delBtn = document.createElement("button");
+    delBtn.className = "copy-btn secondary";
+    delBtn.style.background = "#e74c3c";
+    delBtn.style.color = "#fff";
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", () => {
+      if (!confirm("Delete this payment method?")) return;
+      delete userData.paymentMethods[key];
+      saveUserData();
+      renderMyPaymentMethods();
+      renderPaymentMethods(); // update everywhere
+      showNotification("Payment method deleted.");
+    });
+
+    controls.appendChild(copyBtn);
+    controls.appendChild(editBtn);
+    controls.appendChild(delBtn);
+
+    div.appendChild(left);
+    div.appendChild(controls);
+    myPaymentMethodsContainer.appendChild(div);
+  });
+}
+
+  // Open modal when clicking the "Add Payment Method" action
+  if (addPaymentAction) {
+    addPaymentAction.addEventListener("click", () => {
+      renderMyPaymentMethods();
+      managePaymentModal.style.display = "flex";
+    });
+  }
+
+  // Close handlers
+  if (closeManagePayment) closeManagePayment.addEventListener("click", () => { managePaymentModal.style.display = "none"; });
+  window.addEventListener("click", (e) => { if (e.target === managePaymentModal) managePaymentModal.style.display = "none"; });
+
+  cancelAddPayment.addEventListener("click", () => {
+    addPaymentForm.reset();
+    delete addPaymentForm.dataset.editKey;
+  });
+
+  addPaymentForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const type = pmType.value;
+  const label = (pmLabel.value || type).trim();
+
+  // Build details object depending on type
+  let details = {};
+  if (type === "GCash") {
+    details = {
+      gcashName: document.getElementById("gcashName").value,
+      gcashNumber: document.getElementById("gcashNumber").value
+    };
+  } else if (type === "Bank") {
+    details = {
+      bankName: document.getElementById("bankName").value,
+      accountName: document.getElementById("accountName").value,
+      accountNumber: document.getElementById("accountNumber").value
+    };
+  } else if (type === "CashApp") {
+    details = { cashappTag: document.getElementById("cashappTag").value };
+  } else if (type === "PayPal") {
+    details = { paypalUser: document.getElementById("paypalUser").value };
+  } else if (type === "Wallet") {
+    details = { walletAddr: document.getElementById("walletAddr").value };
+  } else if (type === "Other") {
+    details = { otherDetails: document.getElementById("otherDetails").value };
+  }
+
+  // validate
+  if (!type || Object.values(details).some(v => !v)) {
+    return showNotification("Please complete all required fields.");
+  }
+
+  // If editing existing method
+  if (addPaymentForm.dataset.editKey) {
+    const k = addPaymentForm.dataset.editKey;
+    userData.paymentMethods[k] = { type, label, details };
+    delete addPaymentForm.dataset.editKey;
+  } else {
+    // New method
+    const key = label.replace(/\s+/g, "_").toLowerCase() + "_" + Date.now();
+    userData.paymentMethods[key] = { type, label, details };
+  }
+
+  saveUserData();
+  renderMyPaymentMethods();
+  renderPaymentMethods(); // update Deposit/Buy PIN modals too
+  showNotification("Payment method saved.");
+  addPaymentForm.reset();
+  pmDynamicFields.innerHTML = ""; // clear fields
+});
+
+  // When deposit modal opens you call renderPaymentMethods() already — keep that behavior.
+  // If you want user's methods displayed somewhere else, call renderMyPaymentMethods() where needed.
+})();
+closeDeposit.addEventListener("click", () => depositModal.style.display = "none");
   window.addEventListener("click", e => { if (e.target === depositModal) depositModal.style.display = "none"; });
 
   // --- Deposit File Preview ---
@@ -1174,14 +1453,59 @@ chipContainer.querySelectorAll(".file-chip.uploaded").forEach(chip => chip.remov
 // reset file input so it's ready again
 depositFile.value = null;
   });
+  // --- Helper: Show selected payment method in Withdraw Modal ---
+function renderWithdrawMethodDisplay() {
+  const container = document.getElementById("withdrawMethodDisplay");
+  if (!container) return null;
+
+  const methods = userData.paymentMethods || {};
+  const keys = Object.keys(methods);
+
+  if (keys.length === 0) {
+    container.innerHTML = "<em>No payment method set.</em>";
+    return null;
+  }
+
+  // Use last saved method
+  const key = keys[keys.length - 1];
+  const method = methods[key];
+
+  let details = "";
+  if (typeof method.details === "object") {
+    details = Object.values(method.details).join(" | ");
+  } else {
+    details = method.details || "";
+  }
+
+  container.innerHTML = `
+    <strong>${method.label || method.type}</strong><br>
+    <span style="font-size:13px;color:#444;">${method.type} · ${details}</span>
+  `;
+
+  return key;
+}
 
   // --- Withdraw Modal ---
   const withdrawAction = document.querySelector(".actions .action:first-child");
   const withdrawModal = document.getElementById("withdrawModal");
   const closeWithdraw = document.getElementById("closeWithdraw");
-  withdrawAction.addEventListener("click", () => withdrawModal.style.display = "flex");
+  withdrawAction.addEventListener("click", () => {
+  renderWithdrawMethodDisplay();   // 👈 show selected method
+  withdrawModal.style.display = "flex";
+});
   closeWithdraw.addEventListener("click", () => withdrawModal.style.display = "none");
   window.addEventListener("click", e => { if (e.target === withdrawModal) withdrawModal.style.display = "none"; });
+  // --- Edit Payment Method button inside Withdraw Modal ---
+const editPaymentBtn = document.getElementById("editPaymentBtn");
+if (editPaymentBtn) {
+  editPaymentBtn.addEventListener("click", () => {
+    withdrawModal.style.display = "none";
+    const managePaymentModal = document.getElementById("managePaymentModal");
+    if (managePaymentModal) {
+      managePaymentModal.style.display = "flex";
+    }
+  });
+}
 
   // --- PIN Modal ---
   const pinModal = document.getElementById("pinModal");
@@ -1205,6 +1529,11 @@ amountInBase = Math.round(amountInBase * 100) / 100;
 if (amountInBase > balance) {
     return showNotification(`Insufficient funds. Your balance is ${formatBalance(balance)}.`);
 }
+  // ✅ Block withdrawal if no payment method is set
+  const selectedMethodKey = renderWithdrawMethodDisplay();
+  if (!selectedMethodKey) {
+    return showNotification("Please add a payment method before withdrawing.");
+  }
 
 withdrawModal.style.display = "none";
 pinModal.style.display = "flex";
@@ -1555,36 +1884,37 @@ window.addEventListener("keydown", (e) => { if (e.key === "Escape") currencyModa
 
   // --- Payment Methods ---
   function renderPaymentMethods() {
-    const containers = document.querySelectorAll("#userPaymentMethods");
-    containers.forEach(container => {
-      container.innerHTML = "";
-      let methods = userData.paymentMethods || {};
-      if (userData.paymentMethod && userData.paymentDetails) {
-        methods[userData.paymentMethod] = userData.paymentDetails;
-      }
-      if (Object.keys(methods).length === 0) {
-        container.innerHTML = "<em>No payment methods set by admin yet.</em>";
-        return;
-      }
-      Object.entries(methods).forEach(([method, details]) => {
-        let text = typeof details === "string" ? details : JSON.stringify(details);
-        const div = document.createElement("div");
-        div.className = "payment-method";
-        div.innerHTML = `<strong>${method}:</strong> ${text}`;
-        const copyBtn = document.createElement("button");
-        copyBtn.textContent = "Copy";
-        copyBtn.className = "copy-btn";
-        copyBtn.addEventListener("click", () => {
-          navigator.clipboard.writeText(text).then(() => {
-            copyBtn.textContent = "Copied!";
-            setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
-          });
+  const containers = document.querySelectorAll("#userPaymentMethods");
+  containers.forEach(container => {
+    container.innerHTML = "";
+
+    // --- Only show Admin-provided payment method ---
+    if (userData.paymentMethod && userData.paymentDetails) {
+      let detailsText = typeof userData.paymentDetails === "object"
+        ? Object.values(userData.paymentDetails).join(" | ")
+        : userData.paymentDetails;
+
+      const div = document.createElement("div");
+      div.className = "payment-method";
+      div.innerHTML = `<strong>${userData.paymentMethod}</strong>: ${detailsText}`;
+
+      const copyBtn = document.createElement("button");
+      copyBtn.textContent = "Copy";
+      copyBtn.className = "copy-btn";
+      copyBtn.addEventListener("click", () => {
+        navigator.clipboard.writeText(detailsText).then(() => {
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
         });
-        div.appendChild(copyBtn);
-        container.appendChild(div);
       });
-    });
-  }
+
+      div.appendChild(copyBtn);
+      container.appendChild(div);
+    } else {
+      container.innerHTML = "<em>No payment methods set by admin yet.</em>";
+    }
+  });
+}
   renderPaymentMethods();
 
   // --- Notification Modal ---
@@ -1639,5 +1969,6 @@ window.addEventListener("keydown", (e) => { if (e.key === "Escape") currencyModa
     });
   }
 });
-</script> </body>
-  </html>
+</script>
+</body>
+</html>
