@@ -81,12 +81,33 @@
       border-radius: 50%;
       margin-left: 6px;
     }
+    .loading { 
+      text-align: center; 
+      padding: 20px; 
+      color: #7a5cff; 
+      font-weight: bold; 
+    }
+    .debug-info {
+      background-color: #f0f0f0;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 15px;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h2>Admin Panel</h2>
   <input type="text" id="searchBar" placeholder="Search users...">
-  <div class="user-list" id="userList"></div>
+  <div class="user-list" id="userList">
+    <div class="loading">Loading users...</div>
+  </div>
+
+  <!-- Debug info panel -->
+  <div id="debugInfo" class="debug-info"></div>
 
   <!-- Manage Modal -->
   <div class="modal" id="userModal">
@@ -97,7 +118,7 @@
 
       <div class="section">
         <h4>Adjust Balance</h4>
-        <input type="number" id="adjustAmount" placeholder="Enter amount" step="0.01">
+        <input type="number" id="adjustAmount" placeholder="Enter amount">
         
         <!-- Currency Selector -->
         <select id="adjustCurrency" style="width:100%;padding:8px;margin:8px 0;border:1px solid #ccc;border-radius:6px;font-size:16px;">
@@ -259,6 +280,13 @@
         <button id="sendPinBtn" class="approve">Send New PIN</button>
         <button id="sendInstrBtn" class="reject">Enter Instructions</button>
       </div>
+
+      <div class="section" id="upgradeSection">
+        <h4>Upgrade Account</h4>
+        <button class="approve" id="upgradeTier2Btn">Upgrade to Tier 2</button>
+        <button class="approve" id="upgradeTier3Btn">Upgrade to Tier 3</button>
+        <p id="upgradeStatus" style="margin-top:8px;color:green;font-weight:bold;"></p>
+      </div>
     </div>
   </div>
 
@@ -272,13 +300,6 @@
     </div>
   </div>
 
-  <div class="section" id="upgradeSection">
-    <h4>Upgrade Account</h4>
-    <button class="approve" id="upgradeTier2Btn">Upgrade to Tier 2</button>
-    <button class="approve" id="upgradeTier3Btn">Upgrade to Tier 3</button>
-    <p id="upgradeStatus" style="margin-top:8px;color:green;font-weight:bold;"></p>
-  </div>
-
   <!-- Slip Viewer Modal -->
   <div class="modal" id="slipModal">
     <div class="modal-content" style="max-width:95%;max-height:90vh;overflow:hidden;">
@@ -287,11 +308,13 @@
     </div>
   </div>
 
-  <script type="module">
-    // Import Firebase SDK
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js "></script>
+  <!-- Firebase Firestore -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js "></script>
 
+  <script>
+    // Your web app's Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyBcZgyw90RJPAbI2CSp-xdfY8R8T8xNPEQ",
       authDomain: "getting-b1b0a.firebaseapp.com",
@@ -301,12 +324,14 @@
       appId: "1:830283724536:web:b400eda99ab1e6aad0ed0d"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-    document.addEventListener("DOMContentLoaded", async function () {
+    document.addEventListener("DOMContentLoaded", function () {
       const usersContainer = document.getElementById("userList");
       const searchInput = document.getElementById("searchBar");
+      const debugInfo = document.getElementById("debugInfo");
 
       const manageModal = document.getElementById("userModal");
       const modalClose = document.getElementById("closeModal");
@@ -336,8 +361,13 @@
       const slipImage = document.getElementById("slipImage");
       const closeSlip = document.getElementById("closeSlip");
 
-      let selectedUserKey = null;
+      const upgradeTier2Btn = document.getElementById("upgradeTier2Btn");
+      const upgradeTier3Btn = document.getElementById("upgradeTier3Btn");
+      const upgradeStatus = document.getElementById("upgradeStatus");
+
+      let selectedUserId = null;
       let selectedUserData = null;
+      let unsubscribeUsers = null;
 
       const paymentTemplates = {
         "Bank": `<input type="text" name="bankName" placeholder="Bank Name"><input type="text" name="accountNumber" placeholder="Account Number"><input type="text" name="accountHolder" placeholder="Account Holder">`,
@@ -347,167 +377,66 @@
         "Wallet": `<input type="text" name="walletAddress" placeholder="Wallet Address">`
       };
 
-      // --- Currency Symbols ---
-      const currencySymbols = {
-        AED: "د.إ", AFN: "؋", ALL: "L", AMD: "֏", ANG: "ƒ", AOA: "Kz",
-        ARS: "$", AUD: "$", AWG: "ƒ", AZN: "₼", BAM: "KM", BBD: "$",
-        BDT: "৳", BGN: "лв", BHD: ".د.ب", BIF: "FBu", BMD: "$", BND: "$",
-        BOB: "$b", BRL: "R$", BSD: "$", BTN: "Nu.", BWP: "P", BYN: "Br",
-        BZD: "$", CAD: "$", CDF: "FC", CHF: "CHF", CLP: "$", CNY: "¥",
-        COP: "$", CRC: "₡", CUP: "$", CVE: "$", CZK: "Kč", DJF: "Fdj",
-        DKK: "kr", DOP: "$", DZD: "د.ج", EGP: "£", ERN: "Nfk", ETB: "Br",
-        EUR: "€", FJD: "$", FKP: "£", GBP: "£", GEL: "₾", GGP: "£",
-        GHS: "₵", GIP: "£", GMD: "D", GNF: "FG", GTQ: "Q", GYD: "$",
-        HKD: "$", HNL: "L", HRK: "kn", HTG: "G", HUF: "Ft", IDR: "Rp",
-        ILS: "₪", IMP: "£", INR: "₹", IQD: "ع.د", IRR: "﷼", ISK: "kr",
-        JEP: "£", JMD: "$", JOD: "د.ا", JPY: "¥", KES: "Sh", KGS: "лв",
-        KHR: "៛", KMF: "CF", KPW: "₩", KRW: "₩", KWD: "د.ك", KYD: "$",
-        KZT: "₸", LAK: "₭", LBP: "ل.ل", LKR: "Rs", LRD: "$", LSL: "L",
-        LYD: "ل.د", MAD: "د.م.", MDL: "L", MGA: "Ar", MKD: "ден", MMK: "K",
-        MNT: "₮", MOP: "MOP$", MRU: "UM", MUR: "₨", MVR: "Rf", MWK: "MK",
-        MXN: "$", MYR: "RM", MZN: "MT", NAD: "$", NGN: "₦", NIO: "C$",
-        NOK: "kr", NPR: "₨", NZD: "$", OMR: "ر.ع.", PAB: "B/.", PEN: "S/",
-        PGK: "K", PHP: "₱", PKR: "₨", PLN: "zł", PYG: "Gs", QAR: "ر.ق",
-        RON: "lei", RSD: "дин.", RUB: "₽", RWF: "FRw", SAR: "ر.س", SBD: "$",
-        SCR: "₨", SDG: "ج.س.", SEK: "kr", SGD: "$", SHP: "£", SLL: "Le",
-        SOS: "Sh", SPL: "£", SRD: "$", STN: "Db", SVC: "$", SYP: "£",
-        SZL: "E", THB: "฿", TJS: "ЅМ", TMT: "m", TND: "د.ت", TOP: "T$",
-        TRY: "₺", TTD: "$", TVD: "$", TWD: "NT$", TZS: "Sh", UAH: "₴",
-        UGX: "Sh", USD: "$", UYU: "$U", UZS: "лв", VES: "Bs.", VND: "₫",
-        VUV: "VT", WST: "T", XAF: "FCFA", XCD: "$", XOF: "CFA", XPF: "₣",
-        YER: "﷼", ZAR: "R", ZMW: "ZK", ZWD: "Z$"
-      };
-
-      // --- Exchange Rates ---
-      const exchangeRates = {
-        AED: 3.67,
-        AFN: 86.7,
-        ALL: 107.5,
-        AMD: 389.0,
-        ANG: 1.79,
-        AOA: 826.0,
-        ARS: 350.0,
-        AUD: 1.52,
-        AWG: 1.79,
-        AZN: 1.7,
-        BAM: 1.84,
-        BBD: 2.0,
-        BDT: 108.0,
-        BGN: 1.83,
-        BHD: 0.38,
-        BIF: 2070,
-        BMD: 1.0,
-        BND: 1.36,
-        BOB: 6.96,
-        BRL: 5.43,
-        BSD: 1.0,
-        BWP: 13.4,
-        BYN: 2.57,
-        BZD: 2.0,
-        CAD: 1.36,
-        CHF: 0.92,
-        CLP: 817.0,
-        CNY: 7.18,
-        COP: 5060.0,
-        CRC: 535.0,
-        CUP: 24.0,
-        CZK: 23.5,
-        DKK: 6.7,
-        DOP: 56.9,
-        DZD: 145.0,
-        EGP: 30.9,
-        ETB: 55.3,
-        EUR: 0.93,
-        FJD: 2.27,
-        GBP: 0.81,
-        GEL: 2.53,
-        GHS: 11.0,
-        GIP: 0.81,
-        GNF: 8650,
-        GTQ: 7.7,
-        HKD: 7.85,
-        HNL: 24.6,
-        HRK: 7.0,
-        HUF: 374.0,
-        IDR: 15600,
-        ILS: 3.63,
-        INR: 83.0,
-        IQD: 1460,
-        IRR: 42000,
-        ISK: 133.0,
-        JMD: 156.0,
-        JPY: 148.0,
-        KES: 148.0,
-        KGS: 87.0,
-        KHR: 4070,
-        KRW: 1360,
-        KWD: 0.31,
-        KZT: 444.0,
-        LAK: 17100,
-        LBP: 15100,
-        LKR: 324.0,
-        LYD: 4.85,
-        MAD: 10.4,
-        MDL: 19.0,
-        MKD: 57.6,
-        MMK: 2090,
-        MNT: 3400,
-        MOP: 8.1,
-        MRU: 36.0,
-        MUR: 44.0,
-        MXN: 18.0,
-        MYR: 4.55,
-        MZN: 63.0,
-        NAD: 18.5,
-        NGN: 780.0,
-        NOK: 10.4,
-        NPR: 131.0,
-        NZD: 1.66,
-        OMR: 0.39,
-        PAB: 1.0,
-        PEN: 3.85,
-        PGK: 3.65,
-        PHP: 55.0,
-        PKR: 298.0,
-        PLN: 4.3,
-        PYG: 7460,
-        QAR: 3.64,
-        RON: 4.6,
-        RSD: 109.0,
-        RUB: 92.0,
-        RWF: 1250,
-        SAR: 3.75,
-        SEK: 10.6,
-        SGD: 1.36,
-        SYP: 2510,
-        THB: 35.0,
-        TND: 3.0,
-        TRY: 32.0,
-        UAH: 36.8,
-        USD: 1.0,
-        UYU: 42.0,
-        UZS: 11220,
-        VND: 23950,
-        XAF: 610.0,
-        XOF: 610.0,
-        ZAR: 18.0,
-        ZMW: 22.0
-      };
-
-      function formatBalance(amount, currency) {
-        const rate = exchangeRates[currency] || 1;
-        const converted = amount * rate;
-        const symbol = currencySymbols[currency] || currency;
-        return symbol + converted.toFixed(2);
+      // Function to get username from user data
+      function getUsername(userData, userId) {
+        // Log the user data for debugging
+        debugInfo.textContent += `[DEBUG] Getting username for user ${userId}\n`;
+        debugInfo.textContent += `[DEBUG] User data: ${JSON.stringify(userData)}\n`;
+        
+        // Check if email exists and is a string
+        if (userData && userData.email && typeof userData.email === 'string') {
+          debugInfo.textContent += `[DEBUG] Found email: ${userData.email}\n`;
+          return userData.email;
+        }
+        
+        // Check if displayName exists and is a string
+        if (userData && userData.displayName && typeof userData.displayName === 'string') {
+          debugInfo.textContent += `[DEBUG] Found displayName: ${userData.displayName}\n`;
+          return userData.displayName;
+        }
+        
+        // Check if firstName and lastName exist
+        if (userData && userData.firstName && userData.lastName) {
+          debugInfo.textContent += `[DEBUG] Found firstName and lastName\n`;
+          return `${userData.firstName} ${userData.lastName}`;
+        }
+        
+        // Check if firstName exists
+        if (userData && userData.firstName && typeof userData.firstName === 'string') {
+          debugInfo.textContent += `[DEBUG] Found firstName: ${userData.firstName}\n`;
+          return userData.firstName;
+        }
+        
+        // Check if lastName exists
+        if (userData && userData.lastName && typeof userData.lastName === 'string') {
+          debugInfo.textContent += `[DEBUG] Found lastName: ${userData.lastName}\n`;
+          return userData.lastName;
+        }
+        
+        // If no other options, use the document ID
+        debugInfo.textContent += `[DEBUG] No username found, using document ID: ${userId}\n`;
+        return userId;
       }
 
+      // Load users from Firestore
       function loadUsers() {
-        usersContainer.innerHTML = "";
-        try {
-          const usersRef = await getDoc(doc(db, "users", "list"));
-          const usersData = usersRef.data() || {};
-          Object.keys(usersData).forEach(username => {
-            const userData = usersData[username];
+        if (unsubscribeUsers) unsubscribeUsers(); // Unsubscribe from previous listener
+        
+        usersContainer.innerHTML = '<div class="loading">Loading users...</div>';
+        
+        unsubscribeUsers = db.collection("users").onSnapshot(snapshot => {
+          usersContainer.innerHTML = "";
+          
+          snapshot.forEach(doc => {
+            const userData = doc.data();
+            const userId = doc.id;
+            
+            // Get username using our function
+            const username = getUsername(userData, userId);
+            
+            // Debug output
+            debugInfo.textContent += `[DEBUG] Processing user: ${username} (${userId})\n`;
+            
             const pendingDeposits = (userData.pendingDeposits || []).filter(r => r.status === "pending").length;
             const pendingWithdrawals = (userData.pendingWithdrawals || []).filter(r => r.status === "pending").length;
             const pendingPins = (userData.pendingDeposits || []).filter(r => r.type === "pin" && r.status === "pending").length;
@@ -517,189 +446,464 @@
             const div = document.createElement("div");
             div.className = "user-item";
             div.innerHTML = `
-              <span><strong>${username}</strong> — Balance: ${formatBalance(userData.balance || 0, userData.currency || "USD")}</span>
+              <span><strong>${username}</strong> — Balance: ${userData.balance || 0}</span>
               <div>
-                <button class="manageBtn" data-user="${username}">
+                <button class="manageBtn" data-user="${userId}">
                   Manage ${needsManageDot ? '<span class="red-dot"></span>' : ""}
                 </button>
-                <button class="pinReqBtn" data-user="${username}">
+                <button class="pinReqBtn" data-user="${userId}">
                   PIN Requests ${pendingPins ? "(" + pendingPins + ")" : ""} ${pendingPins ? '<span class="red-dot"></span>' : ""}
                 </button>
               </div>
             `;
             usersContainer.appendChild(div);
           });
-        } catch (err) {
-          console.error("Failed to load users:", err);
-          usersContainer.innerHTML = "<em>Failed to load users.</em>";
-        }
+          
+          if (snapshot.empty) {
+            usersContainer.innerHTML = '<div class="loading">No users found</div>';
+          }
+        }, error => {
+          console.error("Error loading users:", error);
+          usersContainer.innerHTML = '<div class="loading">Error loading users</div>';
+          debugInfo.textContent += `[ERROR] Failed to load users: ${error.message}\n`;
+        });
       }
 
-      function openManageModal(username) {
-        selectedUserKey = username;
-        selectedUserData = JSON.parse(JSON.stringify((await getDoc(doc(db, "users", username))).data())) || {
-          balance: 0, pendingDeposits: [], pendingWithdrawals: [], history: [], pin: null, paymentMethod: null, paymentDetails: {}
-        };
-        modalUsername.textContent = username;
-        modalBalance.textContent = formatBalance(selectedUserData.balance || 0, selectedUserData.currency || "USD");
-        currentPin.textContent = selectedUserData.pin || "None";
+      // Open modal with user data
+      function openManageModal(userId) {
+        selectedUserId = userId;
+        
+        db.collection("users").doc(userId).get().then(doc => {
+          if (!doc.exists) {
+            alert("User not found!");
+            return;
+          }
+          
+          selectedUserData = doc.data();
+          
+          // Get username for display
+          const username = getUsername(selectedUserData, userId);
+          modalUsername.textContent = username;
+          modalBalance.textContent = (selectedUserData.balance || 0).toFixed(2);
+          currentPin.textContent = selectedUserData.pin || "None";
 
-        // deposits
-        modalDeposits.innerHTML = selectedUserData.pendingDeposits.map((d, idx) => `
-          <div class="entry">
-            <div><strong>${d.amount} ${d.currency || "USD"}</strong> — ${d.status}${d.slipUrl ? `<br><img src="${d.slipUrl}" class="slipThumb" data-src="${d.slipUrl}">` : ""}</div>
-            ${d.status === "pending" ? `<div><button class="approve" data-type="deposit" data-idx="${idx}">Approve</button><button class="reject" data-type="deposit" data-idx="${idx}">Reject</button></div>` : ""}
-          </div>`).join("") || "<em>No deposits</em>";
+          // Display deposits
+          modalDeposits.innerHTML = (selectedUserData.pendingDeposits || []).map((d, idx) => `
+            <div class="entry">
+              <div><strong>${d.amount} ${d.currency || "USD"}</strong> — ${d.status}${d.slipUrl ? `<br><img src="${d.slipUrl}" class="slipThumb" data-src="${d.slipUrl}">` : ""}</div>
+              ${d.status === "pending" ? `<div><button class="approve" data-type="deposit" data-idx="${idx}">Approve</button><button class="reject" data-type="deposit" data-idx="${idx}">Reject</button></div>` : ""}
+            </div>`).join("") || "<em>No deposits</em>";
 
-        // withdrawals
-        modalWithdrawals.innerHTML = selectedUserData.pendingWithdrawals.map((w, idx) => `
-          <div class="entry">
-            <div>${w.amount} — ${w.status}</div>
-            ${w.status === "pending" ? `<div><button class="approve" data-type="withdraw" data-idx="${idx}">Approve</button><button class="reject" data-type="withdraw" data-idx="${idx}">Reject</button></div>` : ""}
-          </div>`).join("") || "<em>No withdrawals</em>";
+          // Display withdrawals
+          modalWithdrawals.innerHTML = (selectedUserData.pendingWithdrawals || []).map((w, idx) => `
+            <div class="entry">
+              <div>${w.amount} — ${w.status}</div>
+              ${w.status === "pending" ? `<div><button class="approve" data-type="withdraw" data-idx="${idx}">Approve</button><button class="reject" data-type="withdraw" data-idx="${idx}">Reject</button></div>` : ""}
+            </div>`).join("") || "<em>No withdrawals</em>";
 
-        // history
-        modalHistory.innerHTML = selectedUserData.history.map(h => `<div>[${new Date(h.date).toLocaleString()}] ${h.action}</div>`).join("") || "<em>No history</em>";
+          // Display history
+          modalHistory.innerHTML = (selectedUserData.history || []).map(h => `<div>[${new Date(h.date).toLocaleString()}] ${h.action}</div>`).join("") || "<em>No history</em>";
 
-        manageModal.style.display = "flex";
+          // Set up payment method
+          if (selectedUserData.paymentMethod) {
+            document.querySelectorAll(".chip").forEach(chip => {
+              chip.classList.toggle("active", chip.dataset.method === selectedUserData.paymentMethod);
+            });
+            paymentForm.innerHTML = paymentTemplates[selectedUserData.paymentMethod] || "";
+            
+            // Fill in payment details
+            Object.entries(selectedUserData.paymentDetails || {}).forEach(([key, value]) => {
+              const input = paymentForm.querySelector(`[name="${key}"]`);
+              if (input) input.value = value;
+            });
+          }
+
+          manageModal.style.display = "flex";
+        }).catch(error => {
+          console.error("Error loading user data:", error);
+          alert("Error loading user data");
+          debugInfo.textContent += `[ERROR] Failed to load user data: ${error.message}\n`;
+        });
       }
 
-      async function saveUserData() {
-        try {
-          await updateDoc(doc(db, "users", selectedUserKey), selectedUserData);
-          loadUsers();
-        } catch (err) {
-          console.error("Save failed:", err);
-          alert("Could not save user data.");
-        }
+      // Save user data to Firestore
+      function saveUserData() {
+        if (!selectedUserId || !selectedUserData) return;
+        
+        db.collection("users").doc(selectedUserId).set(selectedUserData, { merge: true })
+          .then(() => {
+            console.log("User data saved successfully");
+            loadUsers();
+          })
+          .catch(error => {
+            console.error("Error saving user data:", error);
+            alert("Error saving user data");
+            debugInfo.textContent += `[ERROR] Failed to save user data: ${error.message}\n`;
+          });
       }
 
-      // PIN Requests
-      async function loadPinRequests() {
+      // Load PIN requests from all users
+      function loadPinRequests() {
         pendingRequests.innerHTML = "";
         completedRequests.innerHTML = "";
-        try {
-          const usersRef = await getDoc(doc(db, "users", "list"));
-          const usersData = usersRef.data() || {};
-          Object.keys(usersData).forEach(username => {
-            const userData = usersData[username];
-            (userData.pendingDeposits || []).forEach(req => {
-              if (req.type !== "pin" || req.status !== "pending") return;
+        
+        db.collection("users").get().then(snapshot => {
+          snapshot.forEach(doc => {
+            const userData = doc.data();
+            const userId = doc.id;
+            
+            // Get username for display
+            const username = getUsername(userData, userId);
+            
+            (userData.pendingDeposits || []).forEach((req, idx) => {
+              if (req.type !== "pin") return;
+              
               const div = document.createElement("div");
-              div.className = "pin-request pending";
+              div.className = `pin-request ${req.status}`;
               div.innerHTML = `
                 <p><strong>User:</strong> ${username}</p>
                 <p><strong>Date:</strong> ${new Date(req.date).toLocaleString()}</p>
                 ${req.slipUrl ? `<img src="${req.slipUrl}" class="slipThumb" data-src="${req.slipUrl}">` : ""}
                 <p><strong>Status:</strong> ${req.status}</p>
               `;
-              const sendBtn = document.createElement("button");
-              sendBtn.textContent = "Send PIN";
-              sendBtn.className = "approve";
-              sendBtn.onclick = async () => {
-                const pin = prompt("Enter PIN for " + username);
-                if (pin) {
-                  userData.pin = pin;
-                  userData.newPinNotification = { pin: pin, fromAdmin: true };
-                  req.status = "completed";
-                  userData.history.unshift({ action: `PIN sent (${pin})`, date: new Date().toISOString() });
-                  await updateDoc(doc(db, "users", username), userData);
-                  loadPinRequests();
-                  loadUsers();
-                }
-              };
-              div.appendChild(sendBtn);
+              
+              if (req.status === "pending") {
+                const sendBtn = document.createElement("button");
+                sendBtn.textContent = "Send PIN";
+                sendBtn.className = "approve";
+                sendBtn.onclick = () => {
+                  const pin = prompt("Enter PIN for " + username);
+                  if (pin) {
+                    // Update user data
+                    db.collection("users").doc(userId).update({
+                      pin: pin,
+                      newPinNotification: {
+                        pin: pin,
+                        fromAdmin: true
+                      },
+                      "pendingDeposits": firebase.firestore.FieldValue.arrayRemove(req)
+                    }).then(() => {
+                      // Add to history
+                      db.collection("users").doc(userId).update({
+                        history: firebase.firestore.FieldValue.arrayUnion({
+                          action: `PIN sent (${pin})`,
+                          date: new Date().toISOString()
+                        })
+                      }).then(() => {
+                        loadPinRequests();
+                        loadUsers();
+                      });
+                    }).catch(error => {
+                      console.error("Error updating PIN:", error);
+                      alert("Error updating PIN");
+                      debugInfo.textContent += `[ERROR] Failed to update PIN: ${error.message}\n`;
+                    });
+                  }
+                };
+                div.appendChild(sendBtn);
 
-              const instrBtn = document.createElement("button");
-              instrBtn.textContent = "Enter Instructions";
-              instrBtn.className = "reject";
-              instrBtn.onclick = async () => {
-                const instr = prompt("Enter instructions for " + username, userData.pinInstructions || "");
-                if (instr) {
-                  userData.pinInstructions = instr;
-                  await updateDoc(doc(db, "users", username), userData);
-                  alert("Instructions saved.");
-                }
-              };
-              div.appendChild(instrBtn);
-              pendingRequests.appendChild(div);
+                const instrBtn = document.createElement("button");
+                instrBtn.textContent = "Enter Instructions";
+                instrBtn.className = "reject";
+                instrBtn.onclick = () => {
+                  const instr = prompt("Enter instructions for " + username, userData.pinInstructions || "");
+                  if (instr) {
+                    db.collection("users").doc(userId).update({
+                      pinInstructions: instr
+                    }).then(() => {
+                      alert("Instructions saved.");
+                    }).catch(error => {
+                      console.error("Error saving instructions:", error);
+                      alert("Error saving instructions");
+                      debugInfo.textContent += `[ERROR] Failed to save instructions: ${error.message}\n`;
+                    });
+                  }
+                };
+                div.appendChild(instrBtn);
+              }
+              
+              if (req.status === "completed") {
+                const revokeBtn = document.createElement("button");
+                revokeBtn.textContent = "Revoke PIN";
+                revokeBtn.className = "reject";
+                revokeBtn.onclick = () => {
+                  if (confirm("Revoke PIN for " + username + "?")) {
+                    db.collection("users").doc(userId).update({
+                      pin: null,
+                      "pendingDeposits": firebase.firestore.FieldValue.arrayRemove(req),
+                      history: firebase.firestore.FieldValue.arrayUnion({
+                        action: `PIN revoked`,
+                        date: new Date().toISOString()
+                      })
+                    }).then(() => {
+                      loadPinRequests();
+                      loadUsers();
+                    }).catch(error => {
+                      console.error("Error revoking PIN:", error);
+                      alert("Error revoking PIN");
+                      debugInfo.textContent += `[ERROR] Failed to revoke PIN: ${error.message}\n`;
+                    });
+                  }
+                };
+                div.appendChild(revokeBtn);
+              }
+              
+              if (req.status === "pending") pendingRequests.appendChild(div);
+              else completedRequests.appendChild(div);
             });
           });
-        } catch (err) {
-          console.error("Load PIN requests failed:", err);
-        }
+        }).catch(error => {
+          console.error("Error loading PIN requests:", error);
+          alert("Error loading PIN requests");
+          debugInfo.textContent += `[ERROR] Failed to load PIN requests: ${error.message}\n`;
+        });
       }
 
-      addFundsBtn.onclick = async () => {
+      // Add funds to user account
+      addFundsBtn.onclick = () => {
         const amt = parseFloat(document.getElementById("adjustAmount").value);
         const currency = document.getElementById("adjustCurrency").value;
-        if (amt <= 0) return alert("Enter valid amount.");
-        const rate = exchangeRates[currency] || 1;
-        const amtInUSD = amt / rate;
-        selectedUserData.balance += amtInUSD;
-        await saveUserData();
-        openManageModal(modalUsername.textContent);
+        
+        if (amt > 0) {
+          const rate = exchangeRates[currency] || 1;  
+          const amtInUSD = amt / rate; // convert into USD base
+          selectedUserData.balance = (selectedUserData.balance || 0) + amtInUSD;
+          
+          // Add to history
+          selectedUserData.history = selectedUserData.history || [];
+          selectedUserData.history.unshift({
+            action: `Admin added funds: ${amt} ${currency} (≈ ${amtInUSD.toFixed(2)} USD)`,
+            date: new Date().toISOString()
+          });
+          
+          saveUserData();
+          openManageModal(modalUsername.textContent);
+        }
       };
 
-      removeFundsBtn.onclick = async () => {
+      // Remove funds from user account
+      removeFundsBtn.onclick = () => {
         const amt = parseFloat(document.getElementById("adjustAmount").value);
         const currency = document.getElementById("adjustCurrency").value;
-        if (amt <= 0) return alert("Enter valid amount.");
-        const rate = exchangeRates[currency] || 1;
-        const amtInUSD = amt / rate;
-        if (amtInUSD > selectedUserData.balance) return alert("Insufficient funds.");
-        selectedUserData.balance -= amtInUSD;
-        await saveUserData();
-        openManageModal(modalUsername.textContent);
+        
+        if (amt > 0) {
+          const rate = exchangeRates[currency] || 1;
+          const amtInUSD = amt / rate;
+          
+          if (amtInUSD <= (selectedUserData.balance || 0)) {
+            selectedUserData.balance -= amtInUSD;
+            
+            // Add to history
+            selectedUserData.history = selectedUserData.history || [];
+            selectedUserData.history.unshift({
+              action: `Admin removed funds: ${amt} ${currency} (≈ ${amtInUSD.toFixed(2)} USD)`,
+              date: new Date().toISOString()
+            });
+            
+            saveUserData();
+            openManageModal(modalUsername.textContent);
+          } else {
+            alert("Insufficient balance");
+          }
+        }
       };
 
+      // Exchange rates (simplified)
+      const exchangeRates = {
+        AED: 3.67,
+      AFN: 86.7,
+      ALL: 107.5,
+      AMD: 389.0,
+      ANG: 1.79,
+      AOA: 826.0,
+      ARS: 350.0,
+      AUD: 1.52,
+      AWG: 1.79,
+      AZN: 1.7,
+      BAM: 1.84,
+      BBD: 2.0,
+      BDT: 108.0,
+      BGN: 1.83,
+      BHD: 0.38,
+      BIF: 2070,
+      BMD: 1.0,
+      BND: 1.36,
+      BOB: 6.96,
+      BRL: 5.43,
+      BSD: 1.0,
+      BWP: 13.4,
+      BYN: 2.57,
+      BZD: 2.0,
+      CAD: 1.36,
+      CHF: 0.92,
+      CLP: 817.0,
+      CNY: 7.18,
+      COP: 5060.0,
+      CRC: 535.0,
+      CUP: 24.0,
+      CZK: 23.5,
+      DKK: 6.7,
+      DOP: 56.9,
+      DZD: 145.0,
+      EGP: 30.9,
+      ETB: 55.3,
+      EUR: 0.93,
+      FJD: 2.27,
+      GBP: 0.81,
+      GEL: 2.53,
+      GHS: 11.0,
+      GIP: 0.81,
+      GNF: 8650,
+      GTQ: 7.7,
+      HKD: 7.85,
+      HNL: 24.6,
+      HRK: 7.0,
+      HUF: 374.0,
+      IDR: 15600,
+      ILS: 3.63,
+      INR: 83.0,
+      IQD: 1460,
+      IRR: 42000,
+      ISK: 133.0,
+      JMD: 156.0,
+      JPY: 148.0,
+      KES: 148.0,
+      KGS: 87.0,
+      KHR: 4070,
+      KRW: 1360,
+      KWD: 0.31,
+      KZT: 444.0,
+      LAK: 17100,
+      LBP: 15100,
+      LKR: 324.0,
+      LYD: 4.85,
+      MAD: 10.4,
+      MDL: 19.0,
+      MKD: 57.6,
+      MMK: 2090,
+      MNT: 3400,
+      MOP: 8.1,
+      MRU: 36.0,
+      MUR: 44.0,
+      MXN: 18.0,
+      MYR: 4.55,
+      MZN: 63.0,
+      NAD: 18.5,
+      NGN: 780.0,
+      NOK: 10.4,
+      NPR: 131.0,
+      NZD: 1.66,
+      OMR: 0.39,
+      PAB: 1.0,
+      PEN: 3.85,
+      PGK: 3.65,
+      PHP: 55.0,
+      PKR: 298.0,
+      PLN: 4.3,
+      PYG: 7460,
+      QAR: 3.64,
+      RON: 4.6,
+      RSD: 109.0,
+      RUB: 92.0,
+      RWF: 1250,
+      SAR: 3.75,
+      SEK: 10.6,
+      SGD: 1.36,
+      SYP: 2510,
+      THB: 35.0,
+      TND: 3.0,
+      TRY: 32.0,
+      UAH: 36.8,
+      USD: 1.0,
+      UYU: 42.0,
+      UZS: 11220,
+      VND: 23950,
+      XAF: 610.0,
+      XOF: 610.0,
+      ZAR: 18.0,
+      ZMW: 22.0
+    };
+
+      // Generate PIN for user
       generatePinBtn.onclick = () => {
-        const pin = Math.floor(100000 + Math.random() * 900000).toString();
+        const pin = Math.floor(100000 + Math.random()*900000).toString();
         selectedUserData.pin = pin;
+        
+        // Add to history
+        selectedUserData.history = selectedUserData.history || [];
+        selectedUserData.history.unshift({
+          action: `Admin generated new PIN: ${pin}`,
+          date: new Date().toISOString()
+        });
+        
         saveUserData();
         currentPin.textContent = pin;
       };
 
+      // Send PIN to user
       sendPinBtn.onclick = () => {
         const pin = prompt("Enter PIN to send:");
         if (pin) {
           selectedUserData.pin = pin;
           selectedUserData.newPinNotification = { pin: pin };
+          
+          // Add to history
+          selectedUserData.history = selectedUserData.history || [];
+          selectedUserData.history.unshift({
+            action: `Admin sent PIN: ${pin}`,
+            date: new Date().toISOString()
+          });
+          
           saveUserData();
           currentPin.textContent = pin;
           alert("PIN sent.");
         }
       };
 
+      // Send instructions to user
       sendInstrBtn.onclick = () => {
         const instr = prompt("Enter instructions:", selectedUserData.pinInstructions || "");
         if (instr) {
           selectedUserData.pinInstructions = instr;
-          selectedUserData.history.unshift({ action: "Set PIN instructions", date: new Date().toISOString() });
+          
+          // Add to history
+          selectedUserData.history = selectedUserData.history || [];
+          selectedUserData.history.unshift({
+            action: `Admin set PIN instructions`,
+            date: new Date().toISOString()
+          });
+          
           saveUserData();
           alert("Instructions saved.");
         }
       };
 
-      // Upgrade Account
-      const upgradeTier2Btn = document.getElementById("upgradeTier2Btn");
-      const upgradeTier3Btn = document.getElementById("upgradeTier3Btn");
-      const upgradeStatus = document.getElementById("upgradeStatus");
+      // Upgrade account to Tier 2
+      upgradeTier2Btn.onclick = () => {
+        upgradeAccount(selectedUserData, 2);
+      };
 
-      function formatUpgradeCost(amount) {
-        return `$${amount.toFixed(2)}`;
-      }
+      // Upgrade account to Tier 3
+      upgradeTier3Btn.onclick = () => {
+        upgradeAccount(selectedUserData, 3);
+      };
 
-      async function upgradeAccount(tier) {
+      // Upgrade account function
+      function upgradeAccount(userData, tier) {
         let cost = tier === 2 ? 100 : 200;
-        if (selectedUserData.balance >= cost) {
-          selectedUserData.balance -= cost;
-          selectedUserData.tier = tier;
-          selectedUserData.history.unshift({
-            action: `Upgraded to Tier ${tier} (Cost: ${formatUpgradeCost(cost)})`,
+        
+        if ((userData.balance || 0) >= cost) {
+          userData.balance -= cost;
+          userData.tier = tier;
+          
+          // Add to history
+          userData.history = userData.history || [];
+          userData.history.unshift({
+            action: `Upgraded to Tier ${tier} (Cost: $${cost.toFixed(2)})`,
             date: new Date().toISOString()
           });
-          await saveUserData();
+          
+          saveUserData();
           openManageModal(modalUsername.textContent);
           upgradeStatus.textContent = `Successfully upgraded to Tier ${tier}.`;
           upgradeStatus.style.color = "green";
@@ -709,84 +913,121 @@
         }
       }
 
-      upgradeTier2Btn.onclick = () => upgradeAccount(2);
-      upgradeTier3Btn.onclick = () => upgradeAccount(3);
-
-      // Approve/Reject
+      // Handle approve/reject actions
       document.addEventListener("click", e => {
         if (e.target.classList.contains("approve") || e.target.classList.contains("reject")) {
           const idx = e.target.dataset.idx;
           const type = e.target.dataset.type;
           const action = e.target.classList.contains("approve") ? "approved" : "rejected";
+          
           if (type === "deposit") {
             const dep = selectedUserData.pendingDeposits[idx];
             dep.status = action;
+
             if (action === "approved") {
               const rate = exchangeRates[dep.currency] || 1;
-              const amtInUSD = dep.amount / rate;
-              selectedUserData.balance += amtInUSD;
+              const amtInUSD = dep.amount / rate; // convert to USD
+              selectedUserData.balance = (selectedUserData.balance || 0) + amtInUSD;
+              
+              // Add to history
+              selectedUserData.history = selectedUserData.history || [];
               selectedUserData.history.unshift({
                 action: `Deposit approved: ${dep.amount} ${dep.currency} (≈ ${amtInUSD.toFixed(2)} USD)`,
                 date: new Date().toISOString()
               });
             } else {
+              // Add to history
+              selectedUserData.history = selectedUserData.history || [];
               selectedUserData.history.unshift({
                 action: `Deposit rejected (${dep.amount} ${dep.currency})`,
                 date: new Date().toISOString()
               });
             }
-          } else {
+          } else if (type === "withdraw") {
             const w = selectedUserData.pendingWithdrawals[idx];
             w.status = action;
-            if (action === "approved") selectedUserData.balance -= w.amount;
+            
+            if (action === "approved") {
+              selectedUserData.balance = (selectedUserData.balance || 0) - w.amount;
+            }
+            
+            // Add to history
+            selectedUserData.history = selectedUserData.history || [];
             selectedUserData.history.unshift({
               action: `Withdrawal ${action} (${w.amount})`,
               date: new Date().toISOString()
             });
           }
+          
           saveUserData();
           openManageModal(modalUsername.textContent);
         }
+        
+        // Handle slip thumbnail clicks
         if (e.target.classList.contains("slipThumb")) {
           slipImage.src = e.target.dataset.src;
           slipModal.style.display = "flex";
         }
       });
 
-      paymentChips.addEventListener("click", e => {
-        if (e.target.classList.contains("chip")) {
-          document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
-          e.target.classList.add("active");
-          const method = e.target.dataset.method;
-          selectedUserData.paymentMethod = method;
-          selectedUserData.paymentDetails = {};
-          paymentForm.innerHTML = paymentTemplates[method] || "";
-          saveUserData();
-        }
-      });
+      // Handle payment method selection
+      // Handle payment method selection
+// Handle payment method selection
+paymentChips.addEventListener("click", e => {
+  if (e.target.classList.contains("chip")) {
+    document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+    e.target.classList.add("active");
 
-      paymentForm.addEventListener("input", e => {
-        selectedUserData.paymentDetails[e.target.name] = e.target.value;
-        saveUserData();
-      });
+    const method = e.target.dataset.method;
+    selectedUserData.paymentMethod = method;  // ✅ this is the single truth
 
+    // Reset form for this method
+    paymentForm.innerHTML = paymentTemplates[method] || "";
+
+    // Pre-fill saved values
+    Object.entries(selectedUserData.paymentDetails || {}).forEach(([k, v]) => {
+      const input = paymentForm.querySelector(`[name="${k}"]`);
+      if (input) input.value = v;
+    });
+
+    saveUserData();
+  }
+});
+
+// Handle payment form input changes
+paymentForm.addEventListener("input", e => {
+  if (!selectedUserData.paymentMethod) return;
+
+  if (!selectedUserData.paymentDetails) {
+    selectedUserData.paymentDetails = {};
+  }
+
+  selectedUserData.paymentDetails[e.target.name] = e.target.value;
+  saveUserData();
+});
+      // Handle user list clicks
       usersContainer.addEventListener("click", e => {
-        if (e.target.classList.contains("manageBtn")) openManageModal(e.target.dataset.user);
+        if (e.target.classList.contains("manageBtn")) {
+          openManageModal(e.target.dataset.user);
+        }
         if (e.target.classList.contains("pinReqBtn")) {
           loadPinRequests();
           pinRequestModal.style.display = "flex";
         }
       });
 
+      // Close modals
       modalClose.onclick = () => manageModal.style.display = "none";
       closePinRequest.onclick = () => pinRequestModal.style.display = "none";
       closeSlip.onclick = () => slipModal.style.display = "none";
+      
       window.onclick = e => {
         if (e.target === manageModal) manageModal.style.display = "none";
         if (e.target === pinRequestModal) pinRequestModal.style.display = "none";
         if (e.target === slipModal) slipModal.style.display = "none";
       };
 
+      // Search functionality
       searchInput.addEventListener("input", () => {
         const filter = searchInput.value.toLowerCase();
         document.querySelectorAll(".user-item").forEach(row => {
@@ -794,12 +1035,8 @@
         });
       });
 
+      // Initialize the app
       loadUsers();
-
-      // Listen for real-time updates
-      onSnapshot(doc(db, "users", "list"), () => {
-        loadUsers();
-      });
     });
   </script>
 </body>
