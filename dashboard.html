@@ -335,32 +335,6 @@
     .file-chip .chipClear:hover {
       background: #c0392b;
     }
-/* ---- payment methods UI ---- */
-.payment-method {
-  margin: 8px 0;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: #fbfbff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid #f0efff;
-  font-size: 14px;
-}
-.payment-method .meta { color: #444; font-size: 13px; opacity: 0.95; }
-.payment-method .controls { display:flex; gap:6px; align-items:center; }
-.copy-btn {
-  padding: 6px 8px;
-  border-radius: 8px;
-  border: none;
-  background: #7a5cff;
-  color: #fff;
-  font-weight: 700;
-  cursor: pointer;
-  font-size: 13px;
-}
-.copy-btn.secondary { background: #eee; color: #333; font-weight:600; }
 
   </style>
 </head>
@@ -440,40 +414,30 @@
 
     <div class="tips">
       <h3>
-  <!-- Lightbulb Icon -->
-  <svg xmlns="http://www.w3.org/2000/svg" 
-       width="20" height="20" viewBox="0 0 24 24" 
-       fill="none" stroke="currentColor" stroke-width="2" 
-       stroke-linecap="round" stroke-linejoin="round"
-       style="color:#f1c40f;">
-    <path d="M9 18h6"/>
-    <path d="M10 22h4"/>
-    <path d="M12 2a7 7 0 0 0-7 7c0 3.07 1.63 4.92 3 6h8c1.37-1.08 3-2.93 3-6a7 7 0 0 0-7-7z"/>
-  </svg>
-  Tips & Insights
-</h3>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+          <path d="M9 18h6"/>
+          <path d="M10 22h4"/>
+          <path d="M2 12a10 10 0 1 1 20 0c0 3.2-2 5-4 6H6c-2-1-4-2.8-4-6z"/>
+        </svg>
+        Tips & Insights
+      </h3>
       <p>Set up a payment method for faster withdrawals.</p>
     </div>
 
     <div class="progress">
       <h3>
-  <!-- Bar Chart Icon -->
-  <svg xmlns="http://www.w3.org/2000/svg" 
-       width="20" height="20" viewBox="0 0 24 24" 
-       fill="none" stroke="currentColor" stroke-width="2" 
-       stroke-linecap="round" stroke-linejoin="round"
-       style="color:#7a5cff;">
-    <line x1="12" y1="20" x2="12" y2="10"/>
-    <line x1="18" y1="20" x2="18" y2="4"/>
-    <line x1="6" y1="20" x2="6" y2="16"/>
-  </svg>
-  Account Progress
-</h3>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="12" cy="12" r="5"/>
+          <circle cx="12" cy="12" r="2"/>
+        </svg>
+        Account Progress
+      </h3>
       <div class="tiers">
-  <div class="tier active" data-tier="1">Tier 1</div>
-  <div class="tier" data-tier="2">Tier 2</div>
-  <div class="tier" data-tier="3">Tier 3</div>
-</div>
+        <div class="tier active">Tier 1</div>
+        <div class="tier">Tier 2</div>
+        <div class="tier">Tier 3</div>
+      </div>
     </div>
   </div>
 
@@ -672,47 +636,10 @@
     .file-chip .chipClear:hover {
       background: #c0392b;
     }
-    #tierUpgradeModal svg {
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
-}
 
   </style>
 
- <!-- Manage Payment Methods Modal -->
-<div id="managePaymentModal" class="modal">
-  <div class="modal-content" style="max-width:340px;">
-    <span class="close" id="closeManagePayment" style="cursor:pointer;">&times;</span>
-    <h3>Manage Payment Methods</h3>
-
-    <form id="addPaymentForm" style="margin-top:8px;">
-  <select id="pmType" required style="margin-bottom:8px;">
-    <option value="">Select method</option>
-    <option value="GCash">GCash</option>
-    <option value="Bank">Bank Transfer</option>
-    <option value="CashApp">Cash App</option>
-    <option value="PayPal">PayPal</option>
-    <option value="Wallet">Wallet</option>
-    <option value="Other">Other</option>
-  </select>
-  <!-- Optional label (hidden if you don’t want user to edit name) -->
-  <input type="hidden" id="pmLabel">
-
-  <!-- Dynamic fields will appear here -->
-  <div id="pmDynamicFields"></div>
-
-  <div style="display:flex; gap:8px; margin-top:12px;">
-    <button type="submit" class="deposit-btn" style="flex:1;">Save</button>
-    <button type="button" id="cancelAddPayment" class="deposit-btn" style="flex:1; background:#ddd; color:#111;">Cancel</button>
-  </div>
-</form>
-
-    <div style="margin-top:14px;">
-      <h4 style="margin:6px 0;">Your Methods</h4>
-      <div id="myPaymentMethods"></div>
-    </div>
-  </div>
-</div>
-
+  
  <!-- Deposit Modal -->
 <div id="depositModal" class="modal">
   <div class="modal-content">
@@ -791,17 +718,6 @@
     <h3>Withdraw Funds</h3>
     <form id="withdrawForm">
       <input type="number" id="withdrawAmount" placeholder="Enter amount" required min="20"><br><br>
-      <!-- Show selected method -->
-<div id="withdrawMethodDisplay"
-     style="margin:12px 0; padding:10px; background:#f9f9f9; border:1px solid #eee; border-radius:6px;">
-  <em>No payment method set.</em>
-</div>
-
-<!-- Edit button -->
-<button type="button" id="editPaymentBtn"
-        style="margin-bottom:10px; background:#ddd; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">
-  Edit Payment Method
-</button>
       <button type="submit" class="deposit-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -918,16 +834,6 @@
     </p>
   </div>
 </div>
-<!-- Transaction History Modal -->
-<div id="historyModal" class="modal">
-  <div class="modal-content" style="max-width:400px; text-align:left;">
-    <span class="close" id="closeHistory" style="cursor:pointer;">&times;</span>
-    <h3>Transaction History</h3>
-    <div id="transactionHistory" style="max-height:300px; overflow-y:auto; margin-top:12px;">
-      <em>No transactions yet.</em>
-    </div>
-  </div>
-</div>
   
   <!-- Notification Modal -->
   <div id="notifyModal" class="modal">
@@ -944,17 +850,7 @@
 </button>
     </div>
   </div>
-  
-<!-- Generic Tier Upgrade Modal -->
-<div id="tierUpgradeModal" class="modal">
-  <div class="modal-content">
-    <span class="close" id="closeTierUpgrade">&times;</span>
-    <div class="modal-body"></div>
-    <button id="confirmTierUpgrade" class="primary-btn">Upgrade</button>
-  </div>
-</div>
 
-    
   <!-- Profile Modal -->
   <div id="profileModal" class="modal">
     <div class="modal-content">
@@ -989,7 +885,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- Redirect if not logged in ---
   const currentUser = localStorage.getItem("currentUser");
   if (!currentUser) {
-    window.location.href = "index.html";
+    window.location.href = "login.html";
     return;
   }
 
@@ -1177,9 +1073,8 @@ const exchangeRates = {
   const toggleBalanceIcon = document.getElementById("toggleBalance");
   let balanceVisible = getUserSetting("balanceVisible", true);
 
-// --- Balance Formatting ---
 function formatBalance(amount) {
-  const currency = getUserSetting("currency", "USD"); // defaults to USD
+  const currency = getUserSetting("currency", "USD"); // 👈 now defaults to USD
   const rate = exchangeRates[currency] || 1;
   const converted = amount * rate;
   const symbol = currencySymbols[currency] || currency;
@@ -1189,24 +1084,11 @@ function formatBalance(amount) {
   });
 }
 
-// --- Upgrade Cost Formatting (new) ---
-function formatUpgradeCost(amountUSD) {
-  const currency = getUserSetting("currency", "USD"); // user’s preferred currency
-  const rate = exchangeRates[currency] || 1;
-  const converted = amountUSD * rate;
-  const symbol = currencySymbols[currency] || currency;
-  return `${symbol}${converted.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })}`;
-}
-
-// --- Render Balance ---
-function renderBalance() {
-  balanceElement.textContent = balanceVisible ? formatBalance(balance) : "•••••••";
-  document.querySelectorAll(".eye-open").forEach(el => el.style.display = balanceVisible ? "block" : "none");
-  document.querySelectorAll(".eye-slash").forEach(el => el.style.display = balanceVisible ? "none" : "block");
-}
+  function renderBalance() {
+    balanceElement.textContent = balanceVisible ? formatBalance(balance) : "•••••••";
+    document.querySelectorAll(".eye-open").forEach(el => el.style.display = balanceVisible ? "block" : "none");
+    document.querySelectorAll(".eye-slash").forEach(el => el.style.display = balanceVisible ? "none" : "block");
+  }
   renderBalance();
   toggleBalanceIcon.addEventListener("click", () => {
     balanceVisible = !balanceVisible;
@@ -1225,215 +1107,7 @@ function renderBalance() {
     renderPaymentMethods();
     depositModal.style.display = "flex";
   });
-  
-// ---------- Manage / Add Payment Methods (paste after renderPaymentMethods();) ----------
-(function wirePaymentManager(){
-  const addPaymentAction = document.querySelector(".actions .action:nth-child(3)");
-  const managePaymentModal = document.getElementById("managePaymentModal");
-  const closeManagePayment = document.getElementById("closeManagePayment");
-  const addPaymentForm = document.getElementById("addPaymentForm");
-  const pmType = document.getElementById("pmType");
-const pmDynamicFields = document.getElementById("pmDynamicFields");
-
-// generate fields depending on type
-function renderDynamicFields(selectedType, existingData={}) {
-  pmDynamicFields.innerHTML = ""; // clear old fields
-
-  function makeInput(id, placeholder, value="") {
-    const input = document.createElement("input");
-    input.id = id;
-    input.type = "text";
-    input.placeholder = placeholder;
-    input.value = value;
-    input.required = true;
-    input.style.marginBottom = "8px";
-    pmDynamicFields.appendChild(input);
-    return input;
-  }
-
-  if (selectedType === "GCash") {
-    makeInput("gcashName", "GCash Account Name", existingData.gcashName || "");
-    makeInput("gcashNumber", "GCash Number", existingData.gcashNumber || "");
-  } else if (selectedType === "Bank") {
-    makeInput("bankName", "Bank Name", existingData.bankName || "");
-    makeInput("accountName", "Account Name", existingData.accountName || "");
-    makeInput("accountNumber", "Account Number", existingData.accountNumber || "");
-  } else if (selectedType === "CashApp") {
-    makeInput("cashappTag", "Cash App Tag ($username)", existingData.cashappTag || "");
-  } else if (selectedType === "PayPal") {
-    makeInput("paypalUser", "PayPal Username / Email", existingData.paypalUser || "");
-  } else if (selectedType === "Wallet") {
-    makeInput("walletAddr", "Wallet Address", existingData.walletAddr || "");
-  } else if (selectedType === "Other") {
-    makeInput("otherDetails", "Enter details", existingData.otherDetails || "");
-  }
-}
-
-// refresh when type changes
-pmType.addEventListener("change", () => {
-  renderDynamicFields(pmType.value);
-});
-  const pmLabel = document.getElementById("pmLabel");
-
-  const myPaymentMethodsContainer = document.getElementById("myPaymentMethods");
-  const cancelAddPayment = document.getElementById("cancelAddPayment");
-
-  // ensure paymentMethods object exists
-  userData.paymentMethods = userData.paymentMethods || {};
-  saveUserData();
-
-  function renderMyPaymentMethods() {
-  myPaymentMethodsContainer.innerHTML = "";
-  const methods = userData.paymentMethods || {};
-  if (Object.keys(methods).length === 0) {
-    myPaymentMethodsContainer.innerHTML = "<em>No saved methods. Add one above.</em>";
-    return;
-  }
-
-  Object.entries(methods).forEach(([key, method]) => {
-    const div = document.createElement("div");
-    div.className = "payment-method";
-
-    // handle details (object or string)
-    let detailsText = "";
-    if (typeof method.details === "object") {
-      detailsText = Object.entries(method.details).map(([k, v]) => v).join(" | ");
-    } else {
-      detailsText = method.details || "";
-    }
-
-    const left = document.createElement("div");
-    left.style.minWidth = "0";
-    left.innerHTML = `<div style="font-weight:700;">${method.label || key}</div>
-                      <div class="meta">${method.type} · ${detailsText}</div>`;
-
-    const controls = document.createElement("div");
-    controls.className = "controls";
-
-    // --- Copy button ---
-    const copyBtn = document.createElement("button");
-    copyBtn.className = "copy-btn";
-    copyBtn.textContent = "Copy";
-    copyBtn.addEventListener("click", () => {
-      const textToCopy = typeof method.details === "object"
-        ? Object.values(method.details).join(" | ")
-        : method.details;
-
-      navigator.clipboard.writeText(textToCopy).then(() => {
-        copyBtn.textContent = "Copied!";
-        setTimeout(() => (copyBtn.textContent = "Copy"), 1400);
-      }).catch(() => showNotification("Unable to copy to clipboard."));
-    });
-
-    // --- Edit button ---
-    const editBtn = document.createElement("button");
-    editBtn.className = "copy-btn secondary";
-    editBtn.textContent = "Edit";
-    editBtn.addEventListener("click", () => {
-      pmType.value = method.type;
-      pmLabel.value = method.label || "";
-      renderDynamicFields(method.type, method.details); // 👈 regenerate fields with values
-      addPaymentForm.dataset.editKey = key;
-    });
-
-    // --- Delete button ---
-    const delBtn = document.createElement("button");
-    delBtn.className = "copy-btn secondary";
-    delBtn.style.background = "#e74c3c";
-    delBtn.style.color = "#fff";
-    delBtn.textContent = "Delete";
-    delBtn.addEventListener("click", () => {
-      if (!confirm("Delete this payment method?")) return;
-      delete userData.paymentMethods[key];
-      saveUserData();
-      renderMyPaymentMethods();
-      renderPaymentMethods(); // update everywhere
-      showNotification("Payment method deleted.");
-    });
-
-    controls.appendChild(copyBtn);
-    controls.appendChild(editBtn);
-    controls.appendChild(delBtn);
-
-    div.appendChild(left);
-    div.appendChild(controls);
-    myPaymentMethodsContainer.appendChild(div);
-  });
-}
-
-  // Open modal when clicking the "Add Payment Method" action
-  if (addPaymentAction) {
-    addPaymentAction.addEventListener("click", () => {
-      renderMyPaymentMethods();
-      managePaymentModal.style.display = "flex";
-    });
-  }
-
-  // Close handlers
-  if (closeManagePayment) closeManagePayment.addEventListener("click", () => { managePaymentModal.style.display = "none"; });
-  window.addEventListener("click", (e) => { if (e.target === managePaymentModal) managePaymentModal.style.display = "none"; });
-
-  cancelAddPayment.addEventListener("click", () => {
-    addPaymentForm.reset();
-    delete addPaymentForm.dataset.editKey;
-  });
-
-  addPaymentForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const type = pmType.value;
-  const label = (pmLabel.value || type).trim();
-
-  // Build details object depending on type
-  let details = {};
-  if (type === "GCash") {
-    details = {
-      gcashName: document.getElementById("gcashName").value,
-      gcashNumber: document.getElementById("gcashNumber").value
-    };
-  } else if (type === "Bank") {
-    details = {
-      bankName: document.getElementById("bankName").value,
-      accountName: document.getElementById("accountName").value,
-      accountNumber: document.getElementById("accountNumber").value
-    };
-  } else if (type === "CashApp") {
-    details = { cashappTag: document.getElementById("cashappTag").value };
-  } else if (type === "PayPal") {
-    details = { paypalUser: document.getElementById("paypalUser").value };
-  } else if (type === "Wallet") {
-    details = { walletAddr: document.getElementById("walletAddr").value };
-  } else if (type === "Other") {
-    details = { otherDetails: document.getElementById("otherDetails").value };
-  }
-
-  // validate
-  if (!type || Object.values(details).some(v => !v)) {
-    return showNotification("Please complete all required fields.");
-  }
-
-  // If editing existing method
-  if (addPaymentForm.dataset.editKey) {
-    const k = addPaymentForm.dataset.editKey;
-    userData.paymentMethods[k] = { type, label, details };
-    delete addPaymentForm.dataset.editKey;
-  } else {
-    // New method
-    const key = label.replace(/\s+/g, "_").toLowerCase() + "_" + Date.now();
-    userData.paymentMethods[key] = { type, label, details };
-  }
-
-  saveUserData();
-  renderMyPaymentMethods();
-  renderPaymentMethods(); // update Deposit/Buy PIN modals too
-  showNotification("Payment method saved.");
-  addPaymentForm.reset();
-  pmDynamicFields.innerHTML = ""; // clear fields
-});
-
-  // When deposit modal opens you call renderPaymentMethods() already — keep that behavior.
-  // If you want user's methods displayed somewhere else, call renderMyPaymentMethods() where needed.
-})();
-closeDeposit.addEventListener("click", () => depositModal.style.display = "none");
+  closeDeposit.addEventListener("click", () => depositModal.style.display = "none");
   window.addEventListener("click", e => { if (e.target === depositModal) depositModal.style.display = "none"; });
 
   // --- Deposit File Preview ---
@@ -1486,10 +1160,7 @@ currency: userCurrency,
       slipUrl,
       type: "deposit"
     });
-    userData.history.unshift({ 
-  action: `Deposit submitted ${amount.toFixed(2)} ${userCurrency}`, 
-  date: new Date().toISOString() 
-});
+    userData.history.unshift({ action: `Deposit submitted ${amount}`, date: new Date().toISOString() });
     saveUserData();
 
     // After deposit submission
@@ -1503,59 +1174,14 @@ chipContainer.querySelectorAll(".file-chip.uploaded").forEach(chip => chip.remov
 // reset file input so it's ready again
 depositFile.value = null;
   });
-  // --- Helper: Show selected payment method in Withdraw Modal ---
-function renderWithdrawMethodDisplay() {
-  const container = document.getElementById("withdrawMethodDisplay");
-  if (!container) return null;
-
-  const methods = userData.paymentMethods || {};
-  const keys = Object.keys(methods);
-
-  if (keys.length === 0) {
-    container.innerHTML = "<em>No payment method set.</em>";
-    return null;
-  }
-
-  // Use last saved method
-  const key = keys[keys.length - 1];
-  const method = methods[key];
-
-  let details = "";
-  if (typeof method.details === "object") {
-    details = Object.values(method.details).join(" | ");
-  } else {
-    details = method.details || "";
-  }
-
-  container.innerHTML = `
-    <strong>${method.label || method.type}</strong><br>
-    <span style="font-size:13px;color:#444;">${method.type} · ${details}</span>
-  `;
-
-  return key;
-}
 
   // --- Withdraw Modal ---
   const withdrawAction = document.querySelector(".actions .action:first-child");
   const withdrawModal = document.getElementById("withdrawModal");
   const closeWithdraw = document.getElementById("closeWithdraw");
-  withdrawAction.addEventListener("click", () => {
-  renderWithdrawMethodDisplay();   // 👈 show selected method
-  withdrawModal.style.display = "flex";
-});
+  withdrawAction.addEventListener("click", () => withdrawModal.style.display = "flex");
   closeWithdraw.addEventListener("click", () => withdrawModal.style.display = "none");
   window.addEventListener("click", e => { if (e.target === withdrawModal) withdrawModal.style.display = "none"; });
-  // --- Edit Payment Method button inside Withdraw Modal ---
-const editPaymentBtn = document.getElementById("editPaymentBtn");
-if (editPaymentBtn) {
-  editPaymentBtn.addEventListener("click", () => {
-    withdrawModal.style.display = "none";
-    const managePaymentModal = document.getElementById("managePaymentModal");
-    if (managePaymentModal) {
-      managePaymentModal.style.display = "flex";
-    }
-  });
-}
 
   // --- PIN Modal ---
   const pinModal = document.getElementById("pinModal");
@@ -1570,64 +1196,39 @@ if (editPaymentBtn) {
     return showNotification(`Minimum withdrawal is ${currencySymbols[selectedCurrency]}20 or equivalent.`);
   }
 
-// Convert entered amount to base currency for checking balance
-let amountInBase = amountEntered / (exchangeRates[selectedCurrency] || 1);
+  // Convert entered amount to base currency for checking balance
+  const amountInBase = amountEntered / (exchangeRates[selectedCurrency] || 1);
 
-// ✅ Round to 2 decimal places
-amountInBase = Math.round(amountInBase * 100) / 100;
-
-if (amountInBase > balance) {
+  if (amountInBase > balance) {
     return showNotification(`Insufficient funds. Your balance is ${formatBalance(balance)}.`);
-}
-  // ✅ Block withdrawal if no payment method is set
-  const selectedMethodKey = renderWithdrawMethodDisplay();
-  if (!selectedMethodKey) {
-    return showNotification("Please add a payment method before withdrawing.");
   }
 
-withdrawModal.style.display = "none";
-pinModal.style.display = "flex";
+  withdrawModal.style.display = "none";
+  pinModal.style.display = "flex";
 
-// store base amount for deduction and selected currency for display
-pinModal.dataset.amount = amountInBase;
-pinModal.dataset.withdrawCurrency = selectedCurrency;
+  // store base amount for deduction and selected currency for display
+  pinModal.dataset.amount = amountInBase;
+  pinModal.dataset.withdrawCurrency = selectedCurrency;
 });
   closePin.addEventListener("click", () => pinModal.style.display = "none");
   window.addEventListener("click", e => { if (e.target === pinModal) pinModal.style.display = "none"; });
 
-document.getElementById("pinForm").addEventListener("submit", e => {
+  document.getElementById("pinForm").addEventListener("submit", e => {
     e.preventDefault();
     const enteredPin = document.getElementById("activationPin").value.trim();
-    
-    // Original amount entered in user currency
-    const originalAmount = parseFloat(document.getElementById("withdrawAmount").value);
-    const currency = pinModal.dataset.withdrawCurrency || "USD";
-    
-    // Amount in base currency (USD) for internal balance checks
-    const amountInBase = parseFloat(pinModal.dataset.amount || 0);
+    const amount = parseFloat(pinModal.dataset.amount || 0);
 
     if (enteredPin && userData.pin && enteredPin === userData.pin) {
-        userData.pendingWithdrawals.push({ 
-            amount: amountInBase,      // keep base amount for processing
-            originalAmount,            // store original for display
-            currency,                  // store selected currency
-            status: "pending", 
-            date: new Date().toISOString() 
-        });
-
-        userData.history.unshift({ 
-            action: `Withdrawal submitted ${originalAmount.toFixed(2)} ${currency}`, 
-            date: new Date().toISOString() 
-        });
-
-        saveUserData();
-        showNotification(`Withdrawal of ${originalAmount.toFixed(2)} ${currency} submitted. Awaiting confirmation.`);
-        pinModal.style.display = "none";
-        e.target.reset();
+      userData.pendingWithdrawals.push({ amount, status: "pending", date: new Date().toISOString() });
+      userData.history.unshift({ action: `Withdrawal submitted ${amount}`, date: new Date().toISOString() });
+      saveUserData();
+      showNotification(`Withdrawal of ${formatBalance(amount)} submitted. Awaiting confirmation.`);
+      pinModal.style.display = "none";
+      e.target.reset();
     } else {
-        showNotification("Invalid Activation PIN. Please try again.");
+      showNotification("Invalid Activation PIN. Please try again.");
     }
-});
+  });
  const learnMoreModal = document.getElementById("learnMoreModal");
   const learnMoreBtn = document.getElementById("learnMoreBtn");
   const closeLearnMore = document.getElementById("closeLearnMore");
@@ -1920,227 +1521,51 @@ window.addEventListener("click", e => { if (e.target === currencyModal) currency
 currencySearch.addEventListener("input", () => renderCurrencyList(currencySearch.value));
 window.addEventListener("keydown", (e) => { if (e.key === "Escape") currencyModal.style.display = "none"; });
 
-  // --- Account Tier Upgrade System ---
-function renderTier() {
-  const currentTier = getUserSetting("tier", 1);
-
-  document.querySelectorAll(".tier").forEach((el) => {
-    const tierLevel = parseInt(el.dataset.tier);
-
-    if (tierLevel === currentTier) {
-      el.classList.add("active");
-      el.textContent = `Tier ${tierLevel}`;
-    } else if (tierLevel < currentTier) {
-      el.classList.remove("active");
-      el.textContent = `Tier ${tierLevel} ✔`;
-    } else {
-      el.classList.remove("active");
-      el.textContent = `Tier ${tierLevel} 🔒`;
-    }
-  });
-}
-
-// --- Handle Tier Click ---
-document.querySelectorAll(".tier").forEach((el) => {
-  el.addEventListener("click", () => {
-    const selectedTier = parseInt(el.dataset.tier);
+  // --- Account Tier ---
+  function renderTier() {
     const currentTier = getUserSetting("tier", 1);
-
-    if (selectedTier <= currentTier) {
-      // Already at or below current tier
-      showNotification(`✅ You’re already on Tier ${currentTier}.`);
-    } 
-    else if (selectedTier === currentTier + 1) {
-      // Next tier → open modal
-      const modal = document.getElementById("tierUpgradeModal");
-      const modalBody = modal.querySelector(".modal-body");
-
-      // Dynamic content for each tier
-      if (selectedTier === 2) {
-        modalBody.innerHTML = `
-  <h3>Upgrade to Tier 2</h3>
-  <div style="text-align:center; margin:10px 0;">
-    <svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" fill="none" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="2" y="6" width="20" height="12" rx="2" ry="2"></rect>
-      <path d="M6 12h12"></path>
-      <circle cx="12" cy="12" r="2"></circle>
-    </svg>
-  </div>
-  <ul style="list-style:none; padding:0; text-align:left;">
-    <li style="display:flex; align-items:center; gap:6px; margin:6px 0;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-        <circle cx="12" cy="12" r="3"></circle>
-        <path d="M1 10h22"></path>
-      </svg>
-      Increase transaction limit
-    </li>
-    <li style="display:flex; align-items:center; gap:6px; margin:6px 0;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="orange" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="7" cy="7" r="3"></circle>
-        <path d="M10 7h10v4h-4v4h-4v-4h-2"></path>
-      </svg>
-      Use activation PIN up to 6 times
-    </li>
-  </ul>
-  <p style="color:green;font-weight:bold;">Upgrade cost: ${formatUpgradeCost(100)}</p>
-`;
-      } else if (selectedTier === 3) {
-        modalBody.innerHTML = `
-  <h3>Upgrade to Tier 3</h3>
-  <ul>
-    <li>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="#8A2BE2" style="vertical-align: middle; margin-right: 5px;">
-        <path d="M12 2l3 7h7l-5.5 4.5 2 7L12 16l-6.5 4-2-7L1 9h7l3-7z"/>
-      </svg>
-      Highest transaction limits
-    </li>
-    <li>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFA500" style="vertical-align: middle; margin-right: 5px;">
-        <path d="M3 12l18-12v24L3 12z"/>
-      </svg>
-      Priority withdrawals
-    </li>
-    <li>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="#008000" style="vertical-align: middle; margin-right: 5px;">
-        <path d="M12 1L3 5v6c0 5.5 3.8 10.74 9 12 5.2-1.26 9-6.5 9-12V5l-9-4z"/>
-      </svg>
-      Premium security features
-    </li>
-  </ul>
-  <p style="color:green;font-weight:bold;">
-  <p style="color:green;font-weight:bold;">
-    Upgrade cost: ${formatUpgradeCost(500)}
-  </p>
-`;
-      }
-
-      // Save selected tier so we know what to upgrade to
-      modal.dataset.tier = selectedTier;
-      modal.style.display = "flex";
-    } 
-    else {
-      // Trying to skip too far ahead
-      showNotification("🔒 This tier is locked. Upgrade step by step!");
-    }
-  });
-});
-
-// --- Modal Upgrade Logic ---
-const tierUpgradeModal = document.getElementById("tierUpgradeModal");
-const closeTierUpgrade = document.getElementById("closeTierUpgrade");
-const confirmTierUpgrade = document.getElementById("confirmTierUpgrade");
-
-closeTierUpgrade.addEventListener("click", () => {
-  tierUpgradeModal.style.display = "none";
-});
-
-confirmTierUpgrade.addEventListener("click", () => {
-  const selectedTier = parseInt(tierUpgradeModal.dataset.tier || "0");
-
-  // Close Tier Upgrade modal
-  tierUpgradeModal.style.display = "none";
-
-  // Open Deposit modal
-  depositModal.style.display = "flex";
-
-  // Pre-fill the deposit amount based on selected tier
-  const depositInput = document.getElementById("depositAmount");
-  if (depositInput) {
-    if (selectedTier === 2) {
-  depositInput.value = (100 * (exchangeRates[getUserSetting("currency", "USD")] || 1)).toFixed(2);
-} else if (selectedTier === 3) {
-  depositInput.value = (500 * (exchangeRates[getUserSetting("currency", "USD")] || 1)).toFixed(2);
-} else {
-  depositInput.value = "";
-}
+    document.querySelectorAll(".tier").forEach((el, index) => {
+      el.classList.toggle("active", index + 1 === currentTier);
+    });
   }
+  document.querySelectorAll(".tier").forEach((el, index) => {
+    el.addEventListener("click", () => { setUserSetting("tier", index + 1); renderTier(); });
+  });
+  renderTier();
 
-  // Optional: add a note to history so admin knows it's for upgrade
-  showNotification(`💳 Please deposit to unlock Tier ${selectedTier}.`);
-});
-renderTier();
   // --- Payment Methods ---
   function renderPaymentMethods() {
-  const containers = document.querySelectorAll("#userPaymentMethods");
-  containers.forEach(container => {
-    container.innerHTML = "";
-
-    // --- Only show Admin-provided payment method ---
-    if (userData.paymentMethod && userData.paymentDetails) {
-      let detailsText = typeof userData.paymentDetails === "object"
-        ? Object.values(userData.paymentDetails).join(" | ")
-        : userData.paymentDetails;
-
-      const div = document.createElement("div");
-      div.className = "payment-method";
-      div.innerHTML = `<strong>${userData.paymentMethod}</strong>: ${detailsText}`;
-
-      const copyBtn = document.createElement("button");
-      copyBtn.textContent = "Copy";
-      copyBtn.className = "copy-btn";
-      copyBtn.addEventListener("click", () => {
-        navigator.clipboard.writeText(detailsText).then(() => {
-          copyBtn.textContent = "Copied!";
-          setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
+    const containers = document.querySelectorAll("#userPaymentMethods");
+    containers.forEach(container => {
+      container.innerHTML = "";
+      let methods = userData.paymentMethods || {};
+      if (userData.paymentMethod && userData.paymentDetails) {
+        methods[userData.paymentMethod] = userData.paymentDetails;
+      }
+      if (Object.keys(methods).length === 0) {
+        container.innerHTML = "<em>No payment methods set by admin yet.</em>";
+        return;
+      }
+      Object.entries(methods).forEach(([method, details]) => {
+        let text = typeof details === "string" ? details : JSON.stringify(details);
+        const div = document.createElement("div");
+        div.className = "payment-method";
+        div.innerHTML = `<strong>${method}:</strong> ${text}`;
+        const copyBtn = document.createElement("button");
+        copyBtn.textContent = "Copy";
+        copyBtn.className = "copy-btn";
+        copyBtn.addEventListener("click", () => {
+          navigator.clipboard.writeText(text).then(() => {
+            copyBtn.textContent = "Copied!";
+            setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
+          });
         });
+        div.appendChild(copyBtn);
+        container.appendChild(div);
       });
-
-      div.appendChild(copyBtn);
-      container.appendChild(div);
-    } else {
-      container.innerHTML = "<em>No payment methods available yet.</em>";
-    }
-  });
-}
-  renderPaymentMethods();
-  // --- Transaction History Modal ---
-const historyBtn = document.querySelector(".actions .action:nth-child(4)"); // 4th button in grid
-const historyModal = document.getElementById("historyModal");
-const closeHistory = document.getElementById("closeHistory");
-
-if (historyBtn) {
-  historyBtn.addEventListener("click", () => {
-    renderTransactionHistory();
-    historyModal.style.display = "flex";
-  });
-}
-if (closeHistory) {
-  closeHistory.addEventListener("click", () => historyModal.style.display = "none");
-}
-window.addEventListener("click", e => {
-  if (e.target === historyModal) historyModal.style.display = "none";
-});
-function renderTransactionHistory() {
-  const container = document.getElementById("transactionHistory");
-  if (!container) return;
-
-  const history = userData.history || [];
-  const filteredHistory = history.filter(item => 
-    !/pin/i.test(item.action) // removes any action containing "pin" (case-insensitive)
-  );
-
-  if (filteredHistory.length === 0) {
-    container.innerHTML = "<em>No transactions yet.</em>";
-    return;
+    });
   }
-
-  container.innerHTML = "";
-  history.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "history-item";
-    div.style.padding = "8px 0";
-    div.style.borderBottom = "1px solid #f3f3fb";
-
-    const date = new Date(item.date).toLocaleString();
-    div.innerHTML = `
-      <div><strong>${item.action}</strong></div>
-      <div style="font-size:13px; color:#555;">${date}</div>
-    `;
-
-    container.appendChild(div);
-  });
-}
+  renderPaymentMethods();
 
   // --- Notification Modal ---
   function showNotification(message) {
@@ -2169,12 +1594,11 @@ function renderTransactionHistory() {
   logoutBtn.addEventListener("click", () => {
     localStorage.removeItem("currentUser");
     showNotification("Logged out successfully");
-    setTimeout(() => { window.location.href = "index.html";  }, 1500);
+    setTimeout(() => { window.location.href = "login.html"; }, 1500);
   });
 
   // --- 🔔 Check for new PIN notification ---
-  // Current:
-if (userData.newPinNotification && userData.newPinNotification.pin) {
+  if (userData.newPinNotification && userData.newPinNotification.pin) {
     const pin = userData.newPinNotification.pin;
     const modal = document.createElement("div");
     modal.className = "modal";
@@ -2193,48 +1617,8 @@ if (userData.newPinNotification && userData.newPinNotification.pin) {
       delete userData.newPinNotification;
       saveUserData();
     });
-
   }
-  // --- 🔄 Rotate Tips & Insights with Fade + Bulb Glow ---
-const tips = [
-  "💳 Set up a payment method for faster withdrawals.",
-  "🔐 Never share your activation PIN with anyone.",
-  "📊 Track your deposits and withdrawals regularly.",
-  "🌍 Switch currency for easier international transfers.",
-  "💡 Keep your balance private when sharing your screen."
-];
-
-const tipsParagraph = document.querySelector(".tips p");
-const tipsBulb = document.querySelector(".tips h3 svg"); // 👈 lightbulb icon
-let currentTipIndex = 0;
-
-function showNextTip() {
-  // Fade out text
-  tipsParagraph.style.opacity = 0;
-
-  setTimeout(() => {
-    // Change text
-    tipsParagraph.textContent = tips[currentTipIndex];
-    tipsParagraph.style.opacity = 1;
-
-    // Trigger bulb glow
-    tipsBulb.classList.remove("glow"); // reset
-    void tipsBulb.offsetWidth; // force reflow (so animation restarts)
-    tipsBulb.classList.add("glow");
-
-    // Next index
-    currentTipIndex = (currentTipIndex + 1) % tips.length;
-  }, 600); // matches CSS transition
-}
-
-// Show the first tip immediately
-showNextTip();
-
-// Change tip every 7s
-setInterval(showNextTip, 7000);
-
 });
-
 </script>
-</body>
-</html>
+ </body>
+    </html>
